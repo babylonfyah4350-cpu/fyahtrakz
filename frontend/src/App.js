@@ -24,15 +24,23 @@ import Subscribe from './pages/Subscribe';
 import PaymentSuccess from './pages/Payment/PaymentSuccess';
 import PaymentCancel from './pages/Payment/PaymentCancel';
 
+// Admin Pages
+import AdminDashboard from './pages/Admin/Dashboard';
+import AdminUsers from './pages/Admin/Users';
+import AdminContent from './pages/Admin/Content';
+import AdminFinance from './pages/Admin/Finance';
+import AdminSettings from './pages/Admin/Settings';
+import AdminAnalytics from './pages/Admin/Analytics';
+
 import './App.css';
 
-const ProtectedRoute = ({ children, requireArtist = false }) => {
-    const { isAuthenticated, isArtist, loading } = useAuth();
+const ProtectedRoute = ({ children, requireArtist = false, requireAdmin = false }) => {
+    const { isAuthenticated, isArtist, user, loading } = useAuth();
 
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
-                <div className="w-12 h-12 border-4 border-lime border-t-transparent rounded-full animate-spin" />
+                <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
             </div>
         );
     }
