@@ -1229,8 +1229,14 @@ async def admin_get_user(user_id: str, admin: dict = Depends(get_admin_user)):
     
     # Get additional stats
     if user["user_type"] == "artist":
-        user["song_count"] = await db.songs.count_documents({"artist_id": user_id})
-        user["total_plays"] = sum([s.get("play_count", 0) for s in await db.songs.find({"artist_id": user_id}, {"play_count": 1}).to_list(1000)])
+        # Use aggregation for efficient play count calculation
+        pipeline = [
+            {"$match": {"artist_id": user_id}},
+            {"$group": {"_id": None, "total_plays": {"$sum": "$play_count"}, "count": {"$sum": 1}}}
+        ]
+        result = await db.songs.aggregate(pipeline).to_list(1)
+        user["song_count"] = result[0]["count"] if result else 0
+        user["total_plays"] = result[0]["total_plays"] if result else 0
     elif user["user_type"] == "listener":
         user["playlist_count"] = await db.playlists.count_documents({"user_id": user_id})
         subscription = await db.subscriptions.find_one({"user_id": user_id, "status": "active"}, {"_id": 0})
