@@ -4,11 +4,6 @@ const config: CapacitorConfig = {
   appId: 'com.fyahtrakz.app',
   appName: 'FyahTrakz',
   webDir: 'build',
-  server: {
-    // Use your production URL for API calls
-    url: 'https://fyahtrakz.com',
-    cleartext: true
-  },
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
