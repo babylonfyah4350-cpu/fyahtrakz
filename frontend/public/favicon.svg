@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="pulseGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ccf381;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#a8e063;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="darkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#18181b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#09090b;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="230" fill="url(#pulseGradient)"/>
+  
+  <!-- Inner dark circle -->
+  <circle cx="256" cy="256" r="180" fill="url(#darkGradient)"/>
+  
+  <!-- Sound wave / pulse lines -->
+  <g stroke="#ccf381" stroke-width="12" stroke-linecap="round" fill="none">
+    <!-- Left wave -->
+    <path d="M 140 256 Q 140 190, 140 175 Q 140 160, 140 256 Q 140 350, 140 335" opacity="0.6"/>
+    <path d="M 115 256 Q 115 150, 115 135 Q 115 120, 115 256 Q 115 390, 115 375" opacity="0.4"/>
+    
+    <!-- Center bars (equalizer style) -->
+    <line x1="190" y1="310" x2="190" y2="202"/>
+    <line x1="228" y1="340" x2="228" y2="172"/>
+    <line x1="266" y1="365" x2="266" y2="147"/>
+    <line x1="304" y1="340" x2="304" y2="172"/>
+    <line x1="342" y1="310" x2="342" y2="202"/>
+    
+    <!-- Right wave -->
+    <path d="M 392 256 Q 392 190, 392 175 Q 392 160, 392 256 Q 392 350, 392 335" opacity="0.6"/>
+    <path d="M 417 256 Q 417 150, 417 135 Q 417 120, 417 256 Q 417 390, 417 375" opacity="0.4"/>
+  </g>
+  
+  <!-- Pulse ring effect -->
+  <circle cx="256" cy="256" r="218" fill="none" stroke="#ccf381" stroke-width="5" opacity="0.3"/>
+</svg>
