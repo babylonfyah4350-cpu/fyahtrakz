@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, Form, Query
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, Form, Query, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -7,12 +7,13 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
-from typing import List, Optional
+from typing import List, Optional, Dict
 import uuid
 from datetime import datetime, timezone, timedelta
 import jwt
 import bcrypt
 import base64
+from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -29,7 +30,15 @@ if not JWT_SECRET:
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
 
+# Stripe Configuration
+STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY')
+
+# Payment Pricing (in AUD)
+ARTIST_UPLOAD_PRICE = 2.99  # AUD per song
+LISTENER_SUBSCRIPTION_PRICE = 14.99  # AUD per month
+
 security = HTTPBearer()
+security_optional = HTTPBearer(auto_error=False)
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
