@@ -159,11 +159,17 @@ const Register = () => {
                     </Button>
                 </form>
 
-                <div className="mt-8 text-center">
+                <div className="mt-8 text-center space-y-4">
                     <p className="text-zinc-400">
                         Already have an account?{' '}
                         <Link to="/login" className="text-lime hover:underline" data-testid="login-link">
                             Sign in
+                        </Link>
+                    </p>
+                    <p className="text-zinc-500 text-sm">
+                        Are you an artist?{' '}
+                        <Link to="/register/artist" className="text-orange-500 hover:underline" data-testid="artist-register-link">
+                            Create artist account
                         </Link>
                     </p>
                 </div>
