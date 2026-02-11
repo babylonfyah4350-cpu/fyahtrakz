@@ -287,6 +287,8 @@ async def update_profile(
     website: Optional[str] = Form(None),
     instagram: Optional[str] = Form(None),
     twitter: Optional[str] = Form(None),
+    facebook: Optional[str] = Form(None),
+    tiktok: Optional[str] = Form(None),
     avatar_file: Optional[UploadFile] = File(None),
     current_user: dict = Depends(get_current_user)
 ):
@@ -312,6 +314,10 @@ async def update_profile(
             update_data["instagram"] = instagram.strip() if instagram.strip() else None
         if twitter is not None:
             update_data["twitter"] = twitter.strip() if twitter.strip() else None
+        if facebook is not None:
+            update_data["facebook"] = facebook.strip() if facebook.strip() else None
+        if tiktok is not None:
+            update_data["tiktok"] = tiktok.strip() if tiktok.strip() else None
     
     # Handle avatar upload
     if avatar_file:
