@@ -718,9 +718,19 @@ async def remove_song_from_playlist(
 
 @api_router.get("/artists")
 async def get_artists(limit: int = Query(20, le=100), skip: int = 0):
+    # Exclude private fields from public artist listing
     artists = await db.users.find(
         {"user_type": "artist"},
-        {"_id": 0, "password": 0}
+        {
+            "_id": 0, 
+            "password": 0, 
+            "email": 0, 
+            "phone_number": 0, 
+            "country_code": 0,
+            "upload_credits": 0,
+            "has_subscription": 0,
+            "subscription_expires": 0
+        }
     ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     
     # Add song count for each artist - batch using aggregation
@@ -738,9 +748,19 @@ async def get_artists(limit: int = Query(20, le=100), skip: int = 0):
 
 @api_router.get("/artists/{artist_id}")
 async def get_artist(artist_id: str):
+    # Exclude private fields from public artist profile
     artist = await db.users.find_one(
         {"id": artist_id, "user_type": "artist"},
-        {"_id": 0, "password": 0}
+        {
+            "_id": 0, 
+            "password": 0, 
+            "email": 0, 
+            "phone_number": 0, 
+            "country_code": 0,
+            "upload_credits": 0,
+            "has_subscription": 0,
+            "subscription_expires": 0
+        }
     )
     if not artist:
         raise HTTPException(status_code=404, detail="Artist not found")
