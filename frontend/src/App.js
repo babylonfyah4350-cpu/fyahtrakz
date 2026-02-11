@@ -20,6 +20,9 @@ import PlaylistDetail from './pages/PlaylistDetail';
 import CreatePlaylist from './pages/CreatePlaylist';
 import ArtistDashboard from './pages/Artist/Dashboard';
 import UploadMusic from './pages/Artist/UploadMusic';
+import Subscribe from './pages/Subscribe';
+import PaymentSuccess from './pages/Payment/PaymentSuccess';
+import PaymentCancel from './pages/Payment/PaymentCancel';
 
 import './App.css';
 
