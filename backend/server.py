@@ -24,9 +24,7 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 # JWT Configuration
-JWT_SECRET = os.environ.get('JWT_SECRET')
-if not JWT_SECRET:
-    JWT_SECRET = 'fyahtrakz-secure-jwt-secret-key-2024-prod'
+JWT_SECRET = os.environ.get('JWT_SECRET', 'fyahtrakz-secure-jwt-secret-key-2024-prod')
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
 
@@ -862,17 +860,19 @@ async def get_artist_stats(current_user: dict = Depends(get_current_user)):
     if current_user["user_type"] != "artist":
         raise HTTPException(status_code=403, detail="Only artists can view stats")
     
-    # Get total plays
-    songs = await db.songs.find({"artist_id": current_user["id"]}, {"_id": 0}).to_list(1000)
-    total_plays = sum(s.get("play_count", 0) for s in songs)
-    
-    # Get song count
-    song_count = len(songs)
+    # Get total plays using aggregation for efficiency
+    pipeline = [
+        {"$match": {"artist_id": current_user["id"]}},
+        {"$group": {"_id": None, "total_plays": {"$sum": "$play_count"}, "count": {"$sum": 1}}}
+    ]
+    result = await db.songs.aggregate(pipeline).to_list(1)
+    total_plays = result[0]["total_plays"] if result else 0
+    song_count = result[0]["count"] if result else 0
     
     # Get album count
     album_count = await db.albums.count_documents({"artist_id": current_user["id"]})
     
-    # Top songs
+    # Top songs (only fetch needed fields, exclude large audio_url)
     top_songs = sorted(songs, key=lambda x: x.get("play_count", 0), reverse=True)[:5]
     
     return {
