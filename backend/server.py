@@ -304,19 +304,24 @@ async def upload_song(
     if current_user["user_type"] != "artist":
         raise HTTPException(status_code=403, detail="Only artists can upload songs")
     
-    # Check for upload credits
-    upload_credits = current_user.get("upload_credits", 0)
-    if upload_credits <= 0:
-        raise HTTPException(
-            status_code=402, 
-            detail="No upload credits. Please purchase upload credits to upload songs."
-        )
+    # Check platform settings for free uploads
+    settings = await get_platform_settings()
+    allow_free_uploads = settings.get("allow_free_uploads", False)
     
-    # Deduct one credit
-    await db.users.update_one(
-        {"id": current_user["id"]},
-        {"$inc": {"upload_credits": -1}}
-    )
+    if not allow_free_uploads:
+        # Check for upload credits
+        upload_credits = current_user.get("upload_credits", 0)
+        if upload_credits <= 0:
+            raise HTTPException(
+                status_code=402, 
+                detail="No upload credits. Please purchase upload credits to upload songs."
+            )
+        
+        # Deduct one credit
+        await db.users.update_one(
+            {"id": current_user["id"]},
+            {"$inc": {"upload_credits": -1}}
+        )
     
     # Read and encode audio file as base64
     audio_content = await audio_file.read()
