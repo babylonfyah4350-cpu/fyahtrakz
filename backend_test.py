@@ -5,7 +5,7 @@ import base64
 from datetime import datetime
 
 class TunePulseAPITester:
-    def __init__(self, base_url="https://tunepulse-22.preview.emergentagent.com/api"):
+    def __init__(self, base_url="https://tune-fire.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.listener_token = None
         self.artist_token = None
@@ -265,7 +265,7 @@ class TunePulseAPITester:
             return False
         
         checkout_data = {
-            "origin_url": "https://tunepulse-22.preview.emergentagent.com",
+            "origin_url": "https://tune-fire.preview.emergentagent.com",
             "payment_type": "subscription"
         }
         success, response = self.run_test("Create Subscription Checkout", "POST", "payments/subscription/checkout", 200, checkout_data, token=self.listener_token)
@@ -277,7 +277,7 @@ class TunePulseAPITester:
             return False
         
         checkout_data = {
-            "origin_url": "https://tunepulse-22.preview.emergentagent.com"
+            "origin_url": "https://tune-fire.preview.emergentagent.com"
         }
         success, response = self.run_test("Create Upload Checkout", "POST", "payments/upload/checkout", 200, checkout_data, token=self.artist_token)
         return success and 'checkout_url' in response and 'session_id' in response
