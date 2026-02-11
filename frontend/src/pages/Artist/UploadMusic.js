@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Upload, Music, Image, X, Disc } from 'lucide-react';
+import { Upload, Music, Image, X, Disc, CreditCard, Coins } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Input } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
@@ -18,7 +18,7 @@ const GENRES = [
 
 const UploadMusic = () => {
     const navigate = useNavigate();
-    const { token, isArtist, isAuthenticated } = useAuth();
+    const { token, isArtist, isAuthenticated, user } = useAuth();
     const audioInputRef = useRef(null);
     const coverInputRef = useRef(null);
 
@@ -31,6 +31,9 @@ const UploadMusic = () => {
     const [duration, setDuration] = useState(0);
     const [albums, setAlbums] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [credits, setCredits] = useState(0);
+    const [pricePerUpload, setPricePerUpload] = useState(2.99);
+    const [buyingCredits, setBuyingCredits] = useState(false);
 
     useEffect(() => {
         if (!isAuthenticated || !isArtist) {
@@ -38,18 +41,40 @@ const UploadMusic = () => {
             return;
         }
 
-        const fetchAlbums = async () => {
+        const fetchData = async () => {
             try {
-                const response = await axios.get(`${API}/albums`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                setAlbums(response.data);
+                const [albumsRes, creditsRes] = await Promise.all([
+                    axios.get(`${API}/albums`, { headers: { Authorization: `Bearer ${token}` } }),
+                    axios.get(`${API}/payments/upload-credits`, { headers: { Authorization: `Bearer ${token}` } })
+                ]);
+                setAlbums(albumsRes.data);
+                setCredits(creditsRes.data.credits);
+                setPricePerUpload(creditsRes.data.price_per_upload);
             } catch (error) {
-                console.error('Failed to fetch albums:', error);
+                console.error('Failed to fetch data:', error);
             }
         };
-        fetchAlbums();
+        fetchData();
     }, [token, isArtist, isAuthenticated, navigate]);
+
+    const handleBuyCredits = async () => {
+        setBuyingCredits(true);
+        try {
+            const response = await axios.post(
+                `${API}/payments/upload/checkout`,
+                { origin_url: window.location.origin },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            if (response.data.checkout_url) {
+                window.location.href = response.data.checkout_url;
+            }
+        } catch (error) {
+            console.error('Checkout error:', error);
+            toast.error(error.response?.data?.detail || 'Failed to start checkout');
+            setBuyingCredits(false);
+        }
+    };
 
     const handleAudioChange = (e) => {
         const file = e.target.files?.[0];
@@ -89,6 +114,11 @@ const UploadMusic = () => {
             return;
         }
 
+        if (credits <= 0) {
+            toast.error('No upload credits. Please purchase credits first.');
+            return;
+        }
+
         setLoading(true);
         try {
             const formData = new FormData();
@@ -111,10 +141,15 @@ const UploadMusic = () => {
             });
 
             toast.success('Song uploaded successfully!');
+            setCredits(prev => prev - 1);
             navigate('/artist/dashboard');
         } catch (error) {
             console.error('Upload failed:', error);
-            toast.error(error.response?.data?.detail || 'Failed to upload song');
+            if (error.response?.status === 402) {
+                toast.error('No upload credits. Please purchase credits first.');
+            } else {
+                toast.error(error.response?.data?.detail || 'Failed to upload song');
+            }
         } finally {
             setLoading(false);
         }
@@ -137,13 +172,50 @@ const UploadMusic = () => {
                 <p className="text-zinc-400">Share your music with the world</p>
             </div>
 
+            {/* Credits Section */}
+            <div className="bg-gradient-to-r from-orange-500/10 to-amber-500/10 border border-orange-500/30 rounded-xl p-6 mb-8">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center">
+                            <Coins className="w-6 h-6 text-orange-500" />
+                        </div>
+                        <div>
+                            <p className="text-zinc-400 text-sm">Upload Credits</p>
+                            <p className="font-heading text-3xl font-bold text-white">{credits}</p>
+                        </div>
+                    </div>
+                    <Button
+                        onClick={handleBuyCredits}
+                        disabled={buyingCredits}
+                        className="bg-gradient-to-r from-orange-500 to-amber-500 text-black hover:from-orange-600 hover:to-amber-600"
+                        data-testid="buy-credits-btn"
+                    >
+                        {buyingCredits ? (
+                            'Processing...'
+                        ) : (
+                            <>
+                                <CreditCard className="w-4 h-4 mr-2" />
+                                Buy Credit (${pricePerUpload} AUD)
+                            </>
+                        )}
+                    </Button>
+                </div>
+                {credits === 0 && (
+                    <p className="text-orange-400 text-sm mt-3">
+                        You need at least 1 credit to upload a song. Purchase credits to continue.
+                    </p>
+                )}
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-8">
                 {/* Audio Upload */}
                 <div
-                    onClick={() => audioInputRef.current?.click()}
-                    className={`relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+                    onClick={() => credits > 0 && audioInputRef.current?.click()}
+                    className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-all ${
+                        credits === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                    } ${
                         audioFile
-                            ? 'border-lime bg-lime/5'
+                            ? 'border-orange-500 bg-orange-500/5'
                             : 'border-zinc-700 hover:border-zinc-600'
                     }`}
                     data-testid="audio-upload-area"
@@ -154,12 +226,13 @@ const UploadMusic = () => {
                         accept="audio/*"
                         onChange={handleAudioChange}
                         className="hidden"
+                        disabled={credits === 0}
                         data-testid="audio-input"
                     />
                     {audioFile ? (
                         <div className="flex items-center justify-center gap-4">
-                            <div className="w-12 h-12 bg-lime/20 rounded-xl flex items-center justify-center">
-                                <Music className="w-6 h-6 text-lime" />
+                            <div className="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center">
+                                <Music className="w-6 h-6 text-orange-500" />
                             </div>
                             <div className="text-left">
                                 <p className="font-medium text-white">{audioFile.name}</p>
@@ -182,7 +255,9 @@ const UploadMusic = () => {
                     ) : (
                         <>
                             <Upload className="w-12 h-12 mx-auto text-zinc-500 mb-4" />
-                            <p className="text-white font-medium mb-1">Click to upload audio file</p>
+                            <p className="text-white font-medium mb-1">
+                                {credits > 0 ? 'Click to upload audio file' : 'Purchase credits to upload'}
+                            </p>
                             <p className="text-sm text-zinc-500">MP3, WAV, M4A supported</p>
                         </>
                     )}
@@ -195,8 +270,10 @@ const UploadMusic = () => {
                             Cover Image
                         </label>
                         <div
-                            onClick={() => coverInputRef.current?.click()}
-                            className={`relative aspect-square rounded-xl cursor-pointer overflow-hidden transition-all ${
+                            onClick={() => credits > 0 && coverInputRef.current?.click()}
+                            className={`relative aspect-square rounded-xl overflow-hidden transition-all ${
+                                credits === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                            } ${
                                 coverPreview
                                     ? ''
                                     : 'border-2 border-dashed border-zinc-700 hover:border-zinc-600'
@@ -209,6 +286,7 @@ const UploadMusic = () => {
                                 accept="image/*"
                                 onChange={handleCoverChange}
                                 className="hidden"
+                                disabled={credits === 0}
                                 data-testid="cover-input"
                             />
                             {coverPreview ? (
@@ -250,6 +328,7 @@ const UploadMusic = () => {
                                 onChange={(e) => setTitle(e.target.value)}
                                 placeholder="Enter song title"
                                 className="bg-zinc-800 border-zinc-700 text-white h-12"
+                                disabled={credits === 0}
                                 data-testid="title-input"
                             />
                         </div>
@@ -258,7 +337,7 @@ const UploadMusic = () => {
                             <label className="block text-sm font-medium text-zinc-300 mb-2">
                                 Genre *
                             </label>
-                            <Select value={genre} onValueChange={setGenre}>
+                            <Select value={genre} onValueChange={setGenre} disabled={credits === 0}>
                                 <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white h-12" data-testid="genre-select">
                                     <SelectValue placeholder="Select genre" />
                                 </SelectTrigger>
@@ -276,7 +355,7 @@ const UploadMusic = () => {
                             <label className="block text-sm font-medium text-zinc-300 mb-2">
                                 Album (Optional)
                             </label>
-                            <Select value={albumId} onValueChange={setAlbumId}>
+                            <Select value={albumId} onValueChange={setAlbumId} disabled={credits === 0}>
                                 <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white h-12" data-testid="album-select">
                                     <SelectValue placeholder="Select album or leave empty" />
                                 </SelectTrigger>
@@ -309,11 +388,11 @@ const UploadMusic = () => {
                     </Button>
                     <Button
                         type="submit"
-                        disabled={loading || !audioFile || !title.trim() || !genre}
-                        className="bg-lime text-black hover:bg-lime-dark px-8"
+                        disabled={loading || !audioFile || !title.trim() || !genre || credits === 0}
+                        className="bg-gradient-to-r from-orange-500 to-amber-500 text-black hover:from-orange-600 hover:to-amber-600 px-8"
                         data-testid="upload-submit"
                     >
-                        {loading ? 'Uploading...' : 'Upload Song'}
+                        {loading ? 'Uploading...' : 'Upload Song (1 Credit)'}
                     </Button>
                 </div>
             </form>
