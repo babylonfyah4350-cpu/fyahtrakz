@@ -643,12 +643,14 @@ async def get_recommendations(current_user: dict = Depends(get_current_user)):
     
     listened_song_ids = [h["song_id"] for h in history]
     
-    # Get genres from listened songs
+    # Get genres from listened songs - batch fetch
     listened_genres = []
-    for song_id in listened_song_ids[:20]:
-        song = await db.songs.find_one({"id": song_id}, {"_id": 0, "genre": 1})
-        if song:
-            listened_genres.append(song["genre"])
+    if listened_song_ids:
+        songs_with_genres = await db.songs.find(
+            {"id": {"$in": listened_song_ids[:20]}},
+            {"_id": 0, "genre": 1}
+        ).to_list(20)
+        listened_genres = [s["genre"] for s in songs_with_genres if s.get("genre")]
     
     # Get most common genres
     genre_counts = {}
