@@ -1,12 +1,13 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, Search, Library, PlusCircle, Mic2, LogOut, Upload, BarChart3 } from 'lucide-react';
+import { Home, Search, Library, PlusCircle, Mic2, LogOut, Upload, BarChart3, Shield } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import Logo from '../Logo';
 
 const Sidebar = () => {
     const { user, logout, isArtist } = useAuth();
     const navigate = useNavigate();
+    const isAdmin = user?.user_type === 'admin';
 
     const handleLogout = () => {
         logout();
@@ -22,6 +23,10 @@ const Sidebar = () => {
     const artistItems = [
         { to: '/artist/dashboard', icon: BarChart3, label: 'Dashboard' },
         { to: '/artist/upload', icon: Upload, label: 'Upload Music' },
+    ];
+
+    const adminItems = [
+        { to: '/admin', icon: Shield, label: 'Admin Panel' },
     ];
 
     return (
