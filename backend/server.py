@@ -225,7 +225,7 @@ async def login(user: UserLogin):
 
 @api_router.get("/auth/me")
 async def get_me(current_user: dict = Depends(get_current_user)):
-    return {
+    user_data = {
         "id": current_user["id"],
         "email": current_user["email"],
         "name": current_user["name"],
@@ -234,6 +234,17 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         "bio": current_user.get("bio"),
         "created_at": current_user["created_at"]
     }
+    
+    # Add subscription info for listeners
+    if current_user["user_type"] == "listener":
+        user_data["has_subscription"] = current_user.get("has_subscription", False)
+        user_data["subscription_expires"] = current_user.get("subscription_expires")
+    
+    # Add upload credits for artists
+    if current_user["user_type"] == "artist":
+        user_data["upload_credits"] = current_user.get("upload_credits", 0)
+    
+    return user_data
 
 # ============== SONG ROUTES ==============
 
@@ -249,6 +260,20 @@ async def upload_song(
 ):
     if current_user["user_type"] != "artist":
         raise HTTPException(status_code=403, detail="Only artists can upload songs")
+    
+    # Check for upload credits
+    upload_credits = current_user.get("upload_credits", 0)
+    if upload_credits <= 0:
+        raise HTTPException(
+            status_code=402, 
+            detail="No upload credits. Please purchase upload credits to upload songs."
+        )
+    
+    # Deduct one credit
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {"$inc": {"upload_credits": -1}}
+    )
     
     # Read and encode audio file as base64
     audio_content = await audio_file.read()
