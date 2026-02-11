@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Mic2, Music, Upload, BarChart3, ChevronDown } from 'lucide-react';
+import { Eye, EyeOff, Mic2, Music, Upload, BarChart3, ChevronDown, Phone } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Input } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
@@ -27,6 +27,39 @@ const GENRES = [
     'Other'
 ];
 
+const COUNTRY_CODES = [
+    { code: '+1', country: 'US/Canada' },
+    { code: '+44', country: 'UK' },
+    { code: '+61', country: 'Australia' },
+    { code: '+64', country: 'New Zealand' },
+    { code: '+91', country: 'India' },
+    { code: '+234', country: 'Nigeria' },
+    { code: '+233', country: 'Ghana' },
+    { code: '+254', country: 'Kenya' },
+    { code: '+27', country: 'South Africa' },
+    { code: '+1-876', country: 'Jamaica' },
+    { code: '+1-868', country: 'Trinidad' },
+    { code: '+49', country: 'Germany' },
+    { code: '+33', country: 'France' },
+    { code: '+34', country: 'Spain' },
+    { code: '+39', country: 'Italy' },
+    { code: '+31', country: 'Netherlands' },
+    { code: '+46', country: 'Sweden' },
+    { code: '+47', country: 'Norway' },
+    { code: '+81', country: 'Japan' },
+    { code: '+82', country: 'South Korea' },
+    { code: '+86', country: 'China' },
+    { code: '+55', country: 'Brazil' },
+    { code: '+52', country: 'Mexico' },
+    { code: '+63', country: 'Philippines' },
+    { code: '+62', country: 'Indonesia' },
+    { code: '+60', country: 'Malaysia' },
+    { code: '+65', country: 'Singapore' },
+    { code: '+971', country: 'UAE' },
+    { code: '+966', country: 'Saudi Arabia' },
+    { code: '+20', country: 'Egypt' },
+];
+
 const RegisterArtist = () => {
     const navigate = useNavigate();
     const { register } = useAuth();
@@ -35,6 +68,8 @@ const RegisterArtist = () => {
     const [password, setPassword] = useState('');
     const [bio, setBio] = useState('');
     const [genre, setGenre] = useState('');
+    const [countryCode, setCountryCode] = useState('+61');
+    const [phoneNumber, setPhoneNumber] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
 
@@ -52,7 +87,7 @@ const RegisterArtist = () => {
 
         setLoading(true);
         try {
-            await register(email, password, name, 'artist', bio, genre);
+            await register(email, password, name, 'artist', bio, genre, countryCode, phoneNumber);
             toast.success('Welcome to FyahTrakz! Start uploading your music.');
             navigate('/artist/dashboard');
         } catch (error) {
@@ -95,7 +130,7 @@ const RegisterArtist = () => {
                 </div>
 
                 <p className="text-zinc-500 text-sm">
-                    $2.99 AUD per song upload • Keep 100% of your rights
+                    Free uploads • Keep 100% of your rights
                 </p>
             </div>
 
@@ -168,6 +203,38 @@ const RegisterArtist = () => {
                                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                 </button>
                             </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-300 mb-2">
+                                <Phone className="w-4 h-4 inline mr-1" /> Phone Number
+                            </label>
+                            <div className="flex gap-2">
+                                <div className="relative w-32">
+                                    <select
+                                        value={countryCode}
+                                        onChange={(e) => setCountryCode(e.target.value)}
+                                        className="w-full h-12 bg-zinc-800 border border-zinc-700 text-white rounded-md px-3 pr-8 appearance-none focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                                        data-testid="artist-country-code-select"
+                                    >
+                                        {COUNTRY_CODES.map((c) => (
+                                            <option key={c.code} value={c.code}>
+                                                {c.code} {c.country}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+                                </div>
+                                <Input
+                                    type="tel"
+                                    value={phoneNumber}
+                                    onChange={(e) => setPhoneNumber(e.target.value.replace(/[^0-9]/g, ''))}
+                                    placeholder="Phone number"
+                                    className="bg-zinc-800 border-zinc-700 text-white h-12 flex-1"
+                                    data-testid="artist-phone-input"
+                                />
+                            </div>
+                            <p className="text-xs text-zinc-500 mt-1">Optional - For account recovery & updates</p>
                         </div>
 
                         <div>
