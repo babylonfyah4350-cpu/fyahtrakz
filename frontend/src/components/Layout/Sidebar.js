@@ -89,6 +89,28 @@ const Sidebar = () => {
                 </div>
             )}
 
+            {/* Admin Section */}
+            {isAdmin && (
+                <div className="px-3 mb-6">
+                    <h3 className="text-xs font-semibold uppercase tracking-widest text-red-500 px-3 mb-3">
+                        Admin
+                    </h3>
+                    {adminItems.map(({ to, icon: Icon, label }) => (
+                        <NavLink
+                            key={to}
+                            to={to}
+                            className={({ isActive }) =>
+                                `nav-item mb-1 ${isActive ? 'active bg-red-500/10 text-red-400' : 'text-red-400/70 hover:text-red-400'}`
+                            }
+                            data-testid="nav-admin"
+                        >
+                            <Icon className="w-5 h-5" />
+                            <span className="font-medium">{label}</span>
+                        </NavLink>
+                    ))}
+                </div>
+            )}
+
             <div className="border-t border-zinc-800 mx-3 my-4" />
 
             {/* Browse Artists */}
