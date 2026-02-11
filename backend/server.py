@@ -428,13 +428,14 @@ async def get_playlist(playlist_id: str, current_user: dict = Depends(get_curren
     if not playlist["is_public"] and playlist["user_id"] != current_user["id"]:
         raise HTTPException(status_code=403, detail="Access denied")
     
-    # Get full song details
+    # Get full song details - batch fetch to avoid N+1
     song_ids = playlist.get("songs", [])
-    songs = []
-    for song_id in song_ids:
-        song = await db.songs.find_one({"id": song_id}, {"_id": 0})
-        if song:
-            songs.append(song)
+    if song_ids:
+        songs_cursor = db.songs.find({"id": {"$in": song_ids}}, {"_id": 0})
+        songs_dict = {s["id"]: s for s in await songs_cursor.to_list(len(song_ids))}
+        songs = [songs_dict[sid] for sid in song_ids if sid in songs_dict]
+    else:
+        songs = []
     
     playlist["songs"] = songs
     return playlist
