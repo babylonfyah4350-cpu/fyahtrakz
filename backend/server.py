@@ -31,9 +31,22 @@ JWT_EXPIRATION_HOURS = 24
 # Stripe Configuration
 STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY')
 
-# Payment Pricing (in AUD)
-ARTIST_UPLOAD_PRICE = 2.99  # AUD per song
-LISTENER_SUBSCRIPTION_PRICE = 14.99  # AUD per month
+# Payment Pricing Defaults (used if not set in database)
+DEFAULT_ARTIST_UPLOAD_PRICE = 2.99  # AUD per song
+DEFAULT_LISTENER_SUBSCRIPTION_PRICE = 14.99  # AUD per month
+
+async def get_platform_settings():
+    """Get platform settings from database or return defaults"""
+    settings = await db.settings.find_one({"id": "platform_settings"}, {"_id": 0})
+    if not settings:
+        settings = {
+            "artist_upload_price": DEFAULT_ARTIST_UPLOAD_PRICE,
+            "listener_subscription_price": DEFAULT_LISTENER_SUBSCRIPTION_PRICE,
+            "allow_free_uploads": False,
+            "require_subscription": True,
+            "maintenance_mode": False
+        }
+    return settings
 
 security = HTTPBearer()
 security_optional = HTTPBearer(auto_error=False)
