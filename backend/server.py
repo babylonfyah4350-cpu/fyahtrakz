@@ -57,6 +57,12 @@ class UserCreate(BaseModel):
     password: str
     name: str
     user_type: str = "listener"  # "listener" or "artist"
+    bio: Optional[str] = None
+    genre: Optional[str] = None  # Primary genre for artists
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -187,7 +193,8 @@ async def register(user: UserCreate):
         "name": user.name,
         "user_type": user.user_type,
         "avatar": None,
-        "bio": None,
+        "bio": user.bio,
+        "genre": user.genre if user.user_type == "artist" else None,
         "followers": [],
         "following": [],
         "created_at": datetime.now(timezone.utc).isoformat()
@@ -204,6 +211,7 @@ async def register(user: UserCreate):
             "user_type": user_doc["user_type"],
             "avatar": user_doc["avatar"],
             "bio": user_doc["bio"],
+            "genre": user_doc.get("genre"),
             "created_at": user_doc["created_at"]
         }
     }
@@ -237,6 +245,7 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         "user_type": current_user["user_type"],
         "avatar": current_user.get("avatar"),
         "bio": current_user.get("bio"),
+        "genre": current_user.get("genre"),
         "created_at": current_user["created_at"]
     }
     
@@ -250,6 +259,24 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         user_data["upload_credits"] = current_user.get("upload_credits", 0)
     
     return user_data
+
+@api_router.post("/auth/change-password")
+async def change_password(data: PasswordChange, current_user: dict = Depends(get_current_user)):
+    """Change user password"""
+    # Verify current password
+    if not verify_password(data.current_password, current_user["password"]):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    
+    if len(data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+    
+    # Update password
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {"$set": {"password": hash_password(data.new_password), "password_changed_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Password changed successfully"}
 
 # ============== SONG ROUTES ==============
 
