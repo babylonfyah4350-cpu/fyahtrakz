@@ -2,18 +2,26 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { 
     Users, Search, Ban, CheckCircle, CreditCard, 
-    Coins, ChevronRight, Mail, Calendar
+    Coins, ChevronRight, Mail, Calendar, Phone, Globe,
+    Instagram, Twitter, Facebook, Music, User
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Input } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import {
-    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+    Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '../../components/ui/dialog';
 import { toast } from 'sonner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+// TikTok icon component
+const TikTokIcon = () => (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/>
+    </svg>
+);
 
 const AdminUsers = () => {
     const { token } = useAuth();
@@ -197,9 +205,13 @@ const AdminUsers = () => {
                                 <tr key={user.id} className="border-b border-zinc-800 hover:bg-zinc-800/50">
                                     <td className="p-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center">
-                                                <span className="font-bold text-white">{user.name?.charAt(0).toUpperCase()}</span>
-                                            </div>
+                                            {user.avatar ? (
+                                                <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full object-cover" />
+                                            ) : (
+                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center">
+                                                    <span className="font-bold text-white">{user.name?.charAt(0).toUpperCase()}</span>
+                                                </div>
+                                            )}
                                             <div>
                                                 <p className="font-medium text-white">{user.name}</p>
                                                 <p className="text-sm text-zinc-500">{user.email}</p>
@@ -237,63 +249,162 @@ const AdminUsers = () => {
 
             {/* User Detail Dialog */}
             <Dialog open={showUserDialog} onOpenChange={setShowUserDialog}>
-                <DialogContent className="bg-zinc-900 border-zinc-800 max-w-2xl">
+                <DialogContent className="bg-zinc-900 border-zinc-800 max-w-3xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle className="text-white">User Details</DialogTitle>
+                        <DialogTitle className="text-white">
+                            {userDetail?.user_type === 'artist' ? 'Artist Profile' : 'User Details'}
+                        </DialogTitle>
                     </DialogHeader>
                     {userDetail ? (
                         <div className="space-y-6">
-                            {/* User Info */}
-                            <div className="flex items-center gap-4">
-                                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center">
-                                    <span className="text-2xl font-bold text-white">{userDetail.name?.charAt(0).toUpperCase()}</span>
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-white">{userDetail.name}</h3>
-                                    <p className="text-zinc-400 flex items-center gap-1"><Mail className="w-4 h-4" /> {userDetail.email}</p>
-                                    <p className="text-zinc-500 text-sm flex items-center gap-1"><Calendar className="w-4 h-4" /> Joined {new Date(userDetail.created_at).toLocaleDateString()}</p>
+                            {/* User Header */}
+                            <div className="flex items-start gap-4">
+                                {userDetail.avatar ? (
+                                    <img src={userDetail.avatar} alt={userDetail.name} className="w-20 h-20 rounded-full object-cover" />
+                                ) : (
+                                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center">
+                                        <span className="text-3xl font-bold text-white">{userDetail.name?.charAt(0).toUpperCase()}</span>
+                                    </div>
+                                )}
+                                <div className="flex-1">
+                                    <h3 className="text-2xl font-bold text-white">{userDetail.name}</h3>
+                                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium mt-1 ${
+                                        userDetail.user_type === 'artist' ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'
+                                    }`}>
+                                        {userDetail.user_type}
+                                    </span>
+                                    {userDetail.is_banned && (
+                                        <span className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">Banned</span>
+                                    )}
                                 </div>
                             </div>
 
-                            {/* Stats */}
-                            <div className="grid grid-cols-3 gap-4">
-                                {userDetail.user_type === 'artist' && (
-                                    <>
+                            {/* Contact Information (Private - Admin Only) */}
+                            <div className="bg-zinc-800/50 rounded-lg p-4 space-y-3">
+                                <h4 className="font-medium text-white flex items-center gap-2">
+                                    <User className="w-4 h-4 text-orange-500" /> Contact Information
+                                    <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded">Admin Only</span>
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                    <div className="flex items-center gap-2 text-zinc-300">
+                                        <Mail className="w-4 h-4 text-zinc-500" />
+                                        <span>{userDetail.email}</span>
+                                    </div>
+                                    {userDetail.phone_number && (
+                                        <div className="flex items-center gap-2 text-zinc-300">
+                                            <Phone className="w-4 h-4 text-zinc-500" />
+                                            <span>{userDetail.country_code} {userDetail.phone_number}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex items-center gap-2 text-zinc-300">
+                                        <Calendar className="w-4 h-4 text-zinc-500" />
+                                        <span>Joined {new Date(userDetail.created_at).toLocaleDateString()}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Artist-specific Info */}
+                            {userDetail.user_type === 'artist' && (
+                                <>
+                                    {/* Bio & Genre */}
+                                    <div className="bg-zinc-800/50 rounded-lg p-4 space-y-3">
+                                        <h4 className="font-medium text-white flex items-center gap-2">
+                                            <Music className="w-4 h-4 text-orange-500" /> Artist Info
+                                        </h4>
+                                        {userDetail.genre && (
+                                            <div>
+                                                <p className="text-xs text-zinc-500 uppercase mb-1">Primary Genre</p>
+                                                <span className="px-3 py-1 bg-orange-500/20 text-orange-400 rounded-full text-sm">
+                                                    {userDetail.genre}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {userDetail.bio && (
+                                            <div>
+                                                <p className="text-xs text-zinc-500 uppercase mb-1">Bio</p>
+                                                <p className="text-zinc-300 text-sm">{userDetail.bio}</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Social Links */}
+                                    {(userDetail.website || userDetail.instagram || userDetail.twitter || userDetail.facebook || userDetail.tiktok) && (
+                                        <div className="bg-zinc-800/50 rounded-lg p-4 space-y-3">
+                                            <h4 className="font-medium text-white">Social Links</h4>
+                                            <div className="flex flex-wrap gap-3">
+                                                {userDetail.website && (
+                                                    <a href={userDetail.website} target="_blank" rel="noopener noreferrer" 
+                                                       className="flex items-center gap-2 px-3 py-2 bg-zinc-700 rounded-lg text-sm text-zinc-300 hover:bg-zinc-600">
+                                                        <Globe className="w-4 h-4" /> Website
+                                                    </a>
+                                                )}
+                                                {userDetail.instagram && (
+                                                    <a href={`https://instagram.com/${userDetail.instagram}`} target="_blank" rel="noopener noreferrer"
+                                                       className="flex items-center gap-2 px-3 py-2 bg-zinc-700 rounded-lg text-sm text-zinc-300 hover:bg-zinc-600">
+                                                        <Instagram className="w-4 h-4" /> @{userDetail.instagram}
+                                                    </a>
+                                                )}
+                                                {userDetail.twitter && (
+                                                    <a href={`https://twitter.com/${userDetail.twitter}`} target="_blank" rel="noopener noreferrer"
+                                                       className="flex items-center gap-2 px-3 py-2 bg-zinc-700 rounded-lg text-sm text-zinc-300 hover:bg-zinc-600">
+                                                        <Twitter className="w-4 h-4" /> @{userDetail.twitter}
+                                                    </a>
+                                                )}
+                                                {userDetail.facebook && (
+                                                    <a href={`https://facebook.com/${userDetail.facebook}`} target="_blank" rel="noopener noreferrer"
+                                                       className="flex items-center gap-2 px-3 py-2 bg-zinc-700 rounded-lg text-sm text-zinc-300 hover:bg-zinc-600">
+                                                        <Facebook className="w-4 h-4" /> {userDetail.facebook}
+                                                    </a>
+                                                )}
+                                                {userDetail.tiktok && (
+                                                    <a href={`https://tiktok.com/@${userDetail.tiktok}`} target="_blank" rel="noopener noreferrer"
+                                                       className="flex items-center gap-2 px-3 py-2 bg-zinc-700 rounded-lg text-sm text-zinc-300 hover:bg-zinc-600">
+                                                        <TikTokIcon /> @{userDetail.tiktok}
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Artist Stats */}
+                                    <div className="grid grid-cols-3 gap-4">
                                         <div className="bg-zinc-800 rounded-lg p-4 text-center">
                                             <p className="text-2xl font-bold text-white">{userDetail.song_count || 0}</p>
                                             <p className="text-zinc-400 text-sm">Songs</p>
                                         </div>
                                         <div className="bg-zinc-800 rounded-lg p-4 text-center">
-                                            <p className="text-2xl font-bold text-white">{userDetail.total_plays || 0}</p>
+                                            <p className="text-2xl font-bold text-white">{userDetail.total_plays?.toLocaleString() || 0}</p>
                                             <p className="text-zinc-400 text-sm">Total Plays</p>
                                         </div>
                                         <div className="bg-zinc-800 rounded-lg p-4 text-center">
                                             <p className="text-2xl font-bold text-white">{userDetail.upload_credits || 0}</p>
                                             <p className="text-zinc-400 text-sm">Credits</p>
                                         </div>
-                                    </>
-                                )}
-                                {userDetail.user_type === 'listener' && (
-                                    <>
-                                        <div className="bg-zinc-800 rounded-lg p-4 text-center">
-                                            <p className="text-2xl font-bold text-white">{userDetail.playlist_count || 0}</p>
-                                            <p className="text-zinc-400 text-sm">Playlists</p>
-                                        </div>
-                                        <div className="bg-zinc-800 rounded-lg p-4 text-center col-span-2">
-                                            <p className={`text-lg font-bold ${userDetail.subscription?.status === 'active' ? 'text-green-400' : 'text-zinc-400'}`}>
-                                                {userDetail.subscription?.status === 'active' ? 'Active' : 'No Subscription'}
-                                            </p>
-                                            {userDetail.subscription?.expires_at && (
-                                                <p className="text-zinc-500 text-sm">Expires: {new Date(userDetail.subscription.expires_at).toLocaleDateString()}</p>
-                                            )}
-                                        </div>
-                                    </>
-                                )}
-                            </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* Listener-specific Info */}
+                            {userDetail.user_type === 'listener' && (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-zinc-800 rounded-lg p-4 text-center">
+                                        <p className="text-2xl font-bold text-white">{userDetail.playlist_count || 0}</p>
+                                        <p className="text-zinc-400 text-sm">Playlists</p>
+                                    </div>
+                                    <div className="bg-zinc-800 rounded-lg p-4 text-center">
+                                        <p className={`text-lg font-bold ${userDetail.subscription?.status === 'active' ? 'text-green-400' : 'text-zinc-400'}`}>
+                                            {userDetail.subscription?.status === 'active' ? 'Active' : 'No Subscription'}
+                                        </p>
+                                        {userDetail.subscription?.expires_at && (
+                                            <p className="text-zinc-500 text-sm">Expires: {new Date(userDetail.subscription.expires_at).toLocaleDateString()}</p>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Actions */}
                             <div className="space-y-4">
-                                <h4 className="font-medium text-white">Actions</h4>
+                                <h4 className="font-medium text-white">Admin Actions</h4>
                                 <div className="flex flex-wrap gap-2">
                                     <Button
                                         variant={userDetail.is_banned ? "default" : "destructive"}
@@ -336,7 +447,7 @@ const AdminUsers = () => {
                                 <div>
                                     <h4 className="font-medium text-white mb-2">Recent Payments</h4>
                                     <div className="space-y-2">
-                                        {userDetail.recent_payments.slice(0, 3).map((payment, i) => (
+                                        {userDetail.recent_payments.slice(0, 5).map((payment, i) => (
                                             <div key={i} className="flex justify-between items-center bg-zinc-800 rounded-lg p-3">
                                                 <div>
                                                     <p className="text-white text-sm">{payment.payment_type}</p>
