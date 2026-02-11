@@ -167,6 +167,11 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+async def get_admin_user(current_user: dict = Depends(get_current_user)):
+    if current_user.get("user_type") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
 # ============== AUTH ROUTES ==============
 
 @api_router.post("/auth/register")
