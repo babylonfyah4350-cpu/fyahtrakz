@@ -1137,6 +1137,466 @@ async def get_upload_credits(current_user: dict = Depends(get_current_user)):
         "price_per_upload": ARTIST_UPLOAD_PRICE
     }
 
+# ============== ADMIN ROUTES ==============
+
+@api_router.post("/admin/setup")
+async def setup_admin():
+    """Create initial admin account if none exists"""
+    existing_admin = await db.users.find_one({"user_type": "admin"})
+    if existing_admin:
+        raise HTTPException(status_code=400, detail="Admin already exists")
+    
+    admin_doc = {
+        "id": str(uuid.uuid4()),
+        "email": "admin@fyahtrakz.com",
+        "password": hash_password("admin123"),
+        "name": "Admin",
+        "user_type": "admin",
+        "avatar": None,
+        "bio": None,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.users.insert_one(admin_doc)
+    
+    return {"message": "Admin account created", "email": "admin@fyahtrakz.com", "password": "admin123"}
+
+# --- User Management ---
+
+@api_router.get("/admin/users")
+async def admin_get_users(
+    user_type: Optional[str] = None,
+    status: Optional[str] = None,
+    search: Optional[str] = None,
+    limit: int = Query(50, le=200),
+    skip: int = 0,
+    admin: dict = Depends(get_admin_user)
+):
+    """Get all users with filters"""
+    query = {}
+    if user_type:
+        query["user_type"] = user_type
+    if status == "banned":
+        query["is_banned"] = True
+    elif status == "active":
+        query["is_banned"] = {"$ne": True}
+    if search:
+        query["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"email": {"$regex": search, "$options": "i"}}
+        ]
+    
+    users = await db.users.find(query, {"_id": 0, "password": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.users.count_documents(query)
+    
+    return {"users": users, "total": total}
+
+@api_router.get("/admin/users/{user_id}")
+async def admin_get_user(user_id: str, admin: dict = Depends(get_admin_user)):
+    """Get detailed user info"""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get additional stats
+    if user["user_type"] == "artist":
+        user["song_count"] = await db.songs.count_documents({"artist_id": user_id})
+        user["total_plays"] = sum([s.get("play_count", 0) for s in await db.songs.find({"artist_id": user_id}, {"play_count": 1}).to_list(1000)])
+    elif user["user_type"] == "listener":
+        user["playlist_count"] = await db.playlists.count_documents({"user_id": user_id})
+        subscription = await db.subscriptions.find_one({"user_id": user_id, "status": "active"}, {"_id": 0})
+        user["subscription"] = subscription
+    
+    # Get payment history
+    payments = await db.payment_transactions.find({"user_id": user_id}, {"_id": 0}).sort("created_at", -1).limit(10).to_list(10)
+    user["recent_payments"] = payments
+    
+    return user
+
+@api_router.put("/admin/users/{user_id}/ban")
+async def admin_ban_user(user_id: str, admin: dict = Depends(get_admin_user)):
+    """Ban a user"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user["user_type"] == "admin":
+        raise HTTPException(status_code=400, detail="Cannot ban admin")
+    
+    await db.users.update_one({"id": user_id}, {"$set": {"is_banned": True, "banned_at": datetime.now(timezone.utc).isoformat()}})
+    return {"message": "User banned"}
+
+@api_router.put("/admin/users/{user_id}/unban")
+async def admin_unban_user(user_id: str, admin: dict = Depends(get_admin_user)):
+    """Unban a user"""
+    await db.users.update_one({"id": user_id}, {"$set": {"is_banned": False}, "$unset": {"banned_at": ""}})
+    return {"message": "User unbanned"}
+
+@api_router.put("/admin/users/{user_id}/subscription")
+async def admin_manage_subscription(
+    user_id: str,
+    action: str = Query(..., regex="^(grant|revoke|extend)$"),
+    days: int = Query(30, ge=1, le=365),
+    admin: dict = Depends(get_admin_user)
+):
+    """Manage user subscription"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if action == "grant":
+        subscription_doc = {
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "status": "active",
+            "started_at": datetime.now(timezone.utc).isoformat(),
+            "expires_at": (datetime.now(timezone.utc) + timedelta(days=days)).isoformat(),
+            "granted_by_admin": admin["id"]
+        }
+        await db.subscriptions.insert_one(subscription_doc)
+        await db.users.update_one({"id": user_id}, {"$set": {"has_subscription": True, "subscription_expires": subscription_doc["expires_at"]}})
+        return {"message": f"Subscription granted for {days} days"}
+    
+    elif action == "revoke":
+        await db.subscriptions.update_many({"user_id": user_id, "status": "active"}, {"$set": {"status": "revoked"}})
+        await db.users.update_one({"id": user_id}, {"$set": {"has_subscription": False}})
+        return {"message": "Subscription revoked"}
+    
+    elif action == "extend":
+        active_sub = await db.subscriptions.find_one({"user_id": user_id, "status": "active"})
+        if active_sub:
+            current_expires = datetime.fromisoformat(active_sub["expires_at"].replace("Z", "+00:00"))
+            new_expires = current_expires + timedelta(days=days)
+            await db.subscriptions.update_one({"id": active_sub["id"]}, {"$set": {"expires_at": new_expires.isoformat()}})
+            await db.users.update_one({"id": user_id}, {"$set": {"subscription_expires": new_expires.isoformat()}})
+            return {"message": f"Subscription extended by {days} days"}
+        else:
+            raise HTTPException(status_code=400, detail="No active subscription to extend")
+
+@api_router.put("/admin/users/{user_id}/credits")
+async def admin_manage_credits(
+    user_id: str,
+    credits: int = Query(..., ge=-100, le=100),
+    admin: dict = Depends(get_admin_user)
+):
+    """Add or remove upload credits"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user["user_type"] != "artist":
+        raise HTTPException(status_code=400, detail="Only artists have upload credits")
+    
+    await db.users.update_one({"id": user_id}, {"$inc": {"upload_credits": credits}})
+    return {"message": f"Credits adjusted by {credits}"}
+
+# --- Content Moderation ---
+
+@api_router.get("/admin/songs")
+async def admin_get_songs(
+    status: Optional[str] = None,
+    artist_id: Optional[str] = None,
+    search: Optional[str] = None,
+    limit: int = Query(50, le=200),
+    skip: int = 0,
+    admin: dict = Depends(get_admin_user)
+):
+    """Get all songs with filters"""
+    query = {}
+    if status == "flagged":
+        query["is_flagged"] = True
+    elif status == "removed":
+        query["is_removed"] = True
+    if artist_id:
+        query["artist_id"] = artist_id
+    if search:
+        query["$or"] = [
+            {"title": {"$regex": search, "$options": "i"}},
+            {"artist_name": {"$regex": search, "$options": "i"}}
+        ]
+    
+    songs = await db.songs.find(query, {"_id": 0, "audio_url": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.songs.count_documents(query)
+    
+    return {"songs": songs, "total": total}
+
+@api_router.put("/admin/songs/{song_id}/remove")
+async def admin_remove_song(song_id: str, reason: str = "", admin: dict = Depends(get_admin_user)):
+    """Remove a song"""
+    song = await db.songs.find_one({"id": song_id})
+    if not song:
+        raise HTTPException(status_code=404, detail="Song not found")
+    
+    await db.songs.update_one({"id": song_id}, {"$set": {
+        "is_removed": True,
+        "removed_at": datetime.now(timezone.utc).isoformat(),
+        "removed_by": admin["id"],
+        "removal_reason": reason
+    }})
+    return {"message": "Song removed"}
+
+@api_router.put("/admin/songs/{song_id}/restore")
+async def admin_restore_song(song_id: str, admin: dict = Depends(get_admin_user)):
+    """Restore a removed song"""
+    await db.songs.update_one({"id": song_id}, {"$set": {"is_removed": False}, "$unset": {"removed_at": "", "removed_by": "", "removal_reason": ""}})
+    return {"message": "Song restored"}
+
+@api_router.put("/admin/songs/{song_id}/flag")
+async def admin_flag_song(song_id: str, reason: str = "", admin: dict = Depends(get_admin_user)):
+    """Flag a song for review"""
+    await db.songs.update_one({"id": song_id}, {"$set": {"is_flagged": True, "flag_reason": reason}})
+    return {"message": "Song flagged"}
+
+@api_router.put("/admin/songs/{song_id}/unflag")
+async def admin_unflag_song(song_id: str, admin: dict = Depends(get_admin_user)):
+    """Remove flag from song"""
+    await db.songs.update_one({"id": song_id}, {"$set": {"is_flagged": False}, "$unset": {"flag_reason": ""}})
+    return {"message": "Song unflagged"}
+
+@api_router.delete("/admin/songs/{song_id}")
+async def admin_delete_song(song_id: str, admin: dict = Depends(get_admin_user)):
+    """Permanently delete a song"""
+    song = await db.songs.find_one({"id": song_id})
+    if not song:
+        raise HTTPException(status_code=404, detail="Song not found")
+    
+    # Remove from playlists
+    await db.playlists.update_many({}, {"$pull": {"songs": song_id}})
+    await db.songs.delete_one({"id": song_id})
+    
+    return {"message": "Song permanently deleted"}
+
+# --- Financial Dashboard ---
+
+@api_router.get("/admin/finance/overview")
+async def admin_finance_overview(admin: dict = Depends(get_admin_user)):
+    """Get financial overview"""
+    # Total revenue
+    pipeline = [
+        {"$match": {"payment_status": "paid"}},
+        {"$group": {"_id": None, "total": {"$sum": "$amount"}, "count": {"$sum": 1}}}
+    ]
+    result = await db.payment_transactions.aggregate(pipeline).to_list(1)
+    total_revenue = result[0]["total"] if result else 0
+    total_transactions = result[0]["count"] if result else 0
+    
+    # Revenue by type
+    pipeline_by_type = [
+        {"$match": {"payment_status": "paid"}},
+        {"$group": {"_id": "$payment_type", "total": {"$sum": "$amount"}, "count": {"$sum": 1}}}
+    ]
+    revenue_by_type = await db.payment_transactions.aggregate(pipeline_by_type).to_list(10)
+    
+    # Monthly revenue (last 6 months)
+    six_months_ago = (datetime.now(timezone.utc) - timedelta(days=180)).isoformat()
+    pipeline_monthly = [
+        {"$match": {"payment_status": "paid", "created_at": {"$gte": six_months_ago}}},
+        {"$addFields": {"month": {"$substr": ["$created_at", 0, 7]}}},
+        {"$group": {"_id": "$month", "total": {"$sum": "$amount"}, "count": {"$sum": 1}}},
+        {"$sort": {"_id": 1}}
+    ]
+    monthly_revenue = await db.payment_transactions.aggregate(pipeline_monthly).to_list(12)
+    
+    # Active subscriptions
+    active_subs = await db.subscriptions.count_documents({
+        "status": "active",
+        "expires_at": {"$gt": datetime.now(timezone.utc).isoformat()}
+    })
+    
+    return {
+        "total_revenue": total_revenue,
+        "total_transactions": total_transactions,
+        "revenue_by_type": {r["_id"]: {"total": r["total"], "count": r["count"]} for r in revenue_by_type},
+        "monthly_revenue": monthly_revenue,
+        "active_subscriptions": active_subs,
+        "currency": "AUD"
+    }
+
+@api_router.get("/admin/finance/transactions")
+async def admin_get_transactions(
+    payment_type: Optional[str] = None,
+    status: Optional[str] = None,
+    user_id: Optional[str] = None,
+    limit: int = Query(50, le=200),
+    skip: int = 0,
+    admin: dict = Depends(get_admin_user)
+):
+    """Get all transactions"""
+    query = {}
+    if payment_type:
+        query["payment_type"] = payment_type
+    if status:
+        query["payment_status"] = status
+    if user_id:
+        query["user_id"] = user_id
+    
+    transactions = await db.payment_transactions.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.payment_transactions.count_documents(query)
+    
+    return {"transactions": transactions, "total": total}
+
+@api_router.post("/admin/finance/refund/{transaction_id}")
+async def admin_refund_transaction(transaction_id: str, admin: dict = Depends(get_admin_user)):
+    """Mark transaction as refunded (actual Stripe refund would need additional integration)"""
+    transaction = await db.payment_transactions.find_one({"id": transaction_id})
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    
+    await db.payment_transactions.update_one({"id": transaction_id}, {"$set": {
+        "payment_status": "refunded",
+        "refunded_at": datetime.now(timezone.utc).isoformat(),
+        "refunded_by": admin["id"]
+    }})
+    
+    # If subscription, revoke it
+    if transaction.get("payment_type") == "subscription":
+        await db.subscriptions.update_many(
+            {"payment_session_id": transaction.get("session_id")},
+            {"$set": {"status": "refunded"}}
+        )
+        await db.users.update_one({"id": transaction["user_id"]}, {"$set": {"has_subscription": False}})
+    
+    # If upload credit, deduct it
+    elif transaction.get("payment_type") == "upload_credit":
+        await db.users.update_one({"id": transaction["user_id"]}, {"$inc": {"upload_credits": -1}})
+    
+    return {"message": "Transaction marked as refunded"}
+
+# --- Platform Settings ---
+
+@api_router.get("/admin/settings")
+async def admin_get_settings(admin: dict = Depends(get_admin_user)):
+    """Get platform settings"""
+    settings = await db.settings.find_one({"id": "platform_settings"}, {"_id": 0})
+    if not settings:
+        settings = {
+            "id": "platform_settings",
+            "artist_upload_price": ARTIST_UPLOAD_PRICE,
+            "listener_subscription_price": LISTENER_SUBSCRIPTION_PRICE,
+            "currency": "AUD",
+            "allow_free_uploads": False,
+            "require_subscription": True,
+            "maintenance_mode": False
+        }
+        await db.settings.insert_one(settings)
+    return settings
+
+@api_router.put("/admin/settings")
+async def admin_update_settings(
+    artist_upload_price: Optional[float] = None,
+    listener_subscription_price: Optional[float] = None,
+    allow_free_uploads: Optional[bool] = None,
+    require_subscription: Optional[bool] = None,
+    maintenance_mode: Optional[bool] = None,
+    admin: dict = Depends(get_admin_user)
+):
+    """Update platform settings"""
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat(), "updated_by": admin["id"]}
+    
+    if artist_upload_price is not None:
+        update_data["artist_upload_price"] = artist_upload_price
+    if listener_subscription_price is not None:
+        update_data["listener_subscription_price"] = listener_subscription_price
+    if allow_free_uploads is not None:
+        update_data["allow_free_uploads"] = allow_free_uploads
+    if require_subscription is not None:
+        update_data["require_subscription"] = require_subscription
+    if maintenance_mode is not None:
+        update_data["maintenance_mode"] = maintenance_mode
+    
+    await db.settings.update_one({"id": "platform_settings"}, {"$set": update_data}, upsert=True)
+    return {"message": "Settings updated"}
+
+# --- Analytics ---
+
+@api_router.get("/admin/analytics/overview")
+async def admin_analytics_overview(admin: dict = Depends(get_admin_user)):
+    """Get platform analytics overview"""
+    # User counts
+    total_users = await db.users.count_documents({"user_type": {"$ne": "admin"}})
+    total_artists = await db.users.count_documents({"user_type": "artist"})
+    total_listeners = await db.users.count_documents({"user_type": "listener"})
+    
+    # Content counts
+    total_songs = await db.songs.count_documents({"is_removed": {"$ne": True}})
+    total_albums = await db.albums.count_documents({})
+    total_playlists = await db.playlists.count_documents({})
+    
+    # Play counts
+    pipeline = [{"$group": {"_id": None, "total_plays": {"$sum": "$play_count"}}}]
+    result = await db.songs.aggregate(pipeline).to_list(1)
+    total_plays = result[0]["total_plays"] if result else 0
+    
+    # New users this month
+    month_start = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+    new_users_month = await db.users.count_documents({"created_at": {"$gte": month_start}, "user_type": {"$ne": "admin"}})
+    
+    # Active subscriptions
+    active_subs = await db.subscriptions.count_documents({
+        "status": "active",
+        "expires_at": {"$gt": datetime.now(timezone.utc).isoformat()}
+    })
+    
+    return {
+        "users": {
+            "total": total_users,
+            "artists": total_artists,
+            "listeners": total_listeners,
+            "new_this_month": new_users_month
+        },
+        "content": {
+            "songs": total_songs,
+            "albums": total_albums,
+            "playlists": total_playlists,
+            "total_plays": total_plays
+        },
+        "subscriptions": {
+            "active": active_subs
+        }
+    }
+
+@api_router.get("/admin/analytics/top-songs")
+async def admin_top_songs(limit: int = Query(20, le=100), admin: dict = Depends(get_admin_user)):
+    """Get top songs by play count"""
+    songs = await db.songs.find({"is_removed": {"$ne": True}}, {"_id": 0, "audio_url": 0}).sort("play_count", -1).limit(limit).to_list(limit)
+    return songs
+
+@api_router.get("/admin/analytics/top-artists")
+async def admin_top_artists(limit: int = Query(20, le=100), admin: dict = Depends(get_admin_user)):
+    """Get top artists by total plays"""
+    pipeline = [
+        {"$match": {"is_removed": {"$ne": True}}},
+        {"$group": {"_id": "$artist_id", "artist_name": {"$first": "$artist_name"}, "total_plays": {"$sum": "$play_count"}, "song_count": {"$sum": 1}}},
+        {"$sort": {"total_plays": -1}},
+        {"$limit": limit}
+    ]
+    artists = await db.songs.aggregate(pipeline).to_list(limit)
+    return artists
+
+@api_router.get("/admin/analytics/growth")
+async def admin_growth_analytics(admin: dict = Depends(get_admin_user)):
+    """Get growth analytics over time"""
+    # User growth by month (last 6 months)
+    six_months_ago = (datetime.now(timezone.utc) - timedelta(days=180)).isoformat()
+    pipeline = [
+        {"$match": {"created_at": {"$gte": six_months_ago}, "user_type": {"$ne": "admin"}}},
+        {"$addFields": {"month": {"$substr": ["$created_at", 0, 7]}}},
+        {"$group": {"_id": {"month": "$month", "type": "$user_type"}, "count": {"$sum": 1}}},
+        {"$sort": {"_id.month": 1}}
+    ]
+    user_growth = await db.users.aggregate(pipeline).to_list(100)
+    
+    # Song uploads by month
+    pipeline_songs = [
+        {"$match": {"created_at": {"$gte": six_months_ago}}},
+        {"$addFields": {"month": {"$substr": ["$created_at", 0, 7]}}},
+        {"$group": {"_id": "$month", "count": {"$sum": 1}}},
+        {"$sort": {"_id": 1}}
+    ]
+    song_growth = await db.songs.aggregate(pipeline_songs).to_list(12)
+    
+    return {
+        "user_growth": user_growth,
+        "song_growth": song_growth
+    }
+
 # Include router
 app.include_router(api_router)
 
