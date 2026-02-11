@@ -411,6 +411,31 @@ async def record_play(song_id: str, current_user: dict = Depends(get_current_use
     
     return {"message": "Play recorded"}
 
+@api_router.delete("/songs/{song_id}")
+async def delete_song(song_id: str, current_user: dict = Depends(get_current_user)):
+    """Delete a song - only the artist who uploaded it can delete"""
+    song = await db.songs.find_one({"id": song_id})
+    if not song:
+        raise HTTPException(status_code=404, detail="Song not found")
+    
+    # Check if current user is the artist who uploaded the song
+    if song.get("artist_id") != current_user["id"]:
+        raise HTTPException(status_code=403, detail="You can only delete your own songs")
+    
+    # Remove song from all playlists
+    await db.playlists.update_many(
+        {"song_ids": song_id},
+        {"$pull": {"song_ids": song_id}}
+    )
+    
+    # Delete the song
+    await db.songs.delete_one({"id": song_id})
+    
+    # Delete listening history for this song
+    await db.listening_history.delete_many({"song_id": song_id})
+    
+    return {"message": "Song deleted successfully"}
+
 # ============== ALBUM ROUTES ==============
 
 @api_router.post("/albums")
