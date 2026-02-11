@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Music, Play, Upload, Disc, TrendingUp, BarChart3, Trash2, MoreVertical } from 'lucide-react';
+import { Music, Play, Upload, Disc, TrendingUp, BarChart3, Trash2, UserCog } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../../components/ui/button';
 import { toast } from 'sonner';
