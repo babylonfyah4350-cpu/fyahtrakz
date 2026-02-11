@@ -167,6 +167,8 @@ const EditProfile = () => {
             formData.append('website', website);
             formData.append('instagram', instagram);
             formData.append('twitter', twitter);
+            formData.append('facebook', facebook);
+            formData.append('tiktok', tiktok);
             
             if (avatarFile) {
                 formData.append('avatar_file', avatarFile);
