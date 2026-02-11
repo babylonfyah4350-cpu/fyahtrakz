@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Upload, Music, Image, X, Disc, CreditCard, Coins, CheckCircle } from 'lucide-react';
+import { Upload, Music, Image, X, Disc, CreditCard, Coins, CheckCircle, Calendar, Users } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Input } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
@@ -25,6 +25,8 @@ const UploadMusic = () => {
     const [title, setTitle] = useState('');
     const [genre, setGenre] = useState('');
     const [albumId, setAlbumId] = useState('');
+    const [releaseDate, setReleaseDate] = useState('');
+    const [collaborators, setCollaborators] = useState('');
     const [audioFile, setAudioFile] = useState(null);
     const [coverFile, setCoverFile] = useState(null);
     const [coverPreview, setCoverPreview] = useState(null);
@@ -136,6 +138,12 @@ const UploadMusic = () => {
             }
             if (albumId && albumId !== 'none') {
                 formData.append('album_id', albumId);
+            }
+            if (releaseDate) {
+                formData.append('release_date', releaseDate);
+            }
+            if (collaborators.trim()) {
+                formData.append('collaborators', collaborators.trim());
             }
 
             await axios.post(`${API}/songs`, formData, {
@@ -399,6 +407,39 @@ const UploadMusic = () => {
                                 </SelectContent>
                             </Select>
                         </div>
+                    </div>
+                </div>
+
+                {/* Additional Song Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label className="block text-sm font-medium text-zinc-300 mb-2">
+                            <Calendar className="w-4 h-4 inline mr-1" /> Release Date
+                        </label>
+                        <Input
+                            type="date"
+                            value={releaseDate}
+                            onChange={(e) => setReleaseDate(e.target.value)}
+                            className="bg-zinc-800 border-zinc-700 text-white h-12"
+                            disabled={!canUpload}
+                            data-testid="release-date-input"
+                        />
+                        <p className="text-xs text-zinc-500 mt-1">When was this song released?</p>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-zinc-300 mb-2">
+                            <Users className="w-4 h-4 inline mr-1" /> Collaborators
+                        </label>
+                        <Input
+                            value={collaborators}
+                            onChange={(e) => setCollaborators(e.target.value)}
+                            placeholder="e.g. Artist Name, Producer Name"
+                            className="bg-zinc-800 border-zinc-700 text-white h-12"
+                            disabled={!canUpload}
+                            data-testid="collaborators-input"
+                        />
+                        <p className="text-xs text-zinc-500 mt-1">Separate multiple names with commas</p>
                     </div>
                 </div>
 
