@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Settings, DollarSign, Shield, AlertTriangle, Save } from 'lucide-react';
+import { Settings, DollarSign, Shield, AlertTriangle, Save, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Input } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
@@ -21,6 +21,19 @@ const AdminSettings = () => {
         require_subscription: true,
         maintenance_mode: false
     });
+
+    // Password change state
+    const [passwordData, setPasswordData] = useState({
+        current_password: '',
+        new_password: '',
+        confirm_password: ''
+    });
+    const [showPasswords, setShowPasswords] = useState({
+        current: false,
+        new: false,
+        confirm: false
+    });
+    const [changingPassword, setChangingPassword] = useState(false);
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -66,6 +79,41 @@ const AdminSettings = () => {
         }
     };
 
+    const handlePasswordChange = async (e) => {
+        e.preventDefault();
+        
+        if (!passwordData.current_password || !passwordData.new_password || !passwordData.confirm_password) {
+            toast.error('Please fill in all password fields');
+            return;
+        }
+
+        if (passwordData.new_password.length < 6) {
+            toast.error('New password must be at least 6 characters');
+            return;
+        }
+
+        if (passwordData.new_password !== passwordData.confirm_password) {
+            toast.error('New passwords do not match');
+            return;
+        }
+
+        setChangingPassword(true);
+        try {
+            await axios.post(`${API}/auth/change-password`, {
+                current_password: passwordData.current_password,
+                new_password: passwordData.new_password
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            toast.success('Password changed successfully');
+            setPasswordData({ current_password: '', new_password: '', confirm_password: '' });
+        } catch (error) {
+            toast.error(error.response?.data?.detail || 'Failed to change password');
+        } finally {
+            setChangingPassword(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="p-8">
@@ -81,10 +129,93 @@ const AdminSettings = () => {
         <div className="p-8 max-w-3xl" data-testid="admin-settings">
             <div className="mb-8">
                 <h1 className="font-heading text-4xl font-bold text-white mb-2">Platform Settings</h1>
-                <p className="text-zinc-400">Configure pricing and platform features</p>
+                <p className="text-zinc-400">Configure pricing, security, and platform features</p>
             </div>
 
             <div className="space-y-6">
+                {/* Security - Change Password */}
+                <div className="bg-zinc-800/50 rounded-xl p-6">
+                    <h2 className="font-heading text-xl font-bold text-white mb-4 flex items-center gap-2">
+                        <Lock className="w-5 h-5 text-orange-500" /> Change Admin Password
+                    </h2>
+                    <form onSubmit={handlePasswordChange} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-300 mb-2">
+                                Current Password
+                            </label>
+                            <div className="relative max-w-md">
+                                <Input
+                                    type={showPasswords.current ? 'text' : 'password'}
+                                    value={passwordData.current_password}
+                                    onChange={(e) => setPasswordData(prev => ({ ...prev, current_password: e.target.value }))}
+                                    placeholder="Enter current password"
+                                    className="bg-zinc-900 border-zinc-700 text-white pr-12"
+                                    data-testid="current-password-input"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white"
+                                >
+                                    {showPasswords.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-300 mb-2">
+                                New Password
+                            </label>
+                            <div className="relative max-w-md">
+                                <Input
+                                    type={showPasswords.new ? 'text' : 'password'}
+                                    value={passwordData.new_password}
+                                    onChange={(e) => setPasswordData(prev => ({ ...prev, new_password: e.target.value }))}
+                                    placeholder="Enter new password (min 6 chars)"
+                                    className="bg-zinc-900 border-zinc-700 text-white pr-12"
+                                    data-testid="new-password-input"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white"
+                                >
+                                    {showPasswords.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-300 mb-2">
+                                Confirm New Password
+                            </label>
+                            <div className="relative max-w-md">
+                                <Input
+                                    type={showPasswords.confirm ? 'text' : 'password'}
+                                    value={passwordData.confirm_password}
+                                    onChange={(e) => setPasswordData(prev => ({ ...prev, confirm_password: e.target.value }))}
+                                    placeholder="Confirm new password"
+                                    className="bg-zinc-900 border-zinc-700 text-white pr-12"
+                                    data-testid="confirm-password-input"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white"
+                                >
+                                    {showPasswords.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            </div>
+                        </div>
+                        <Button
+                            type="submit"
+                            disabled={changingPassword}
+                            className="bg-orange-500 hover:bg-orange-600 text-black"
+                            data-testid="change-password-submit"
+                        >
+                            {changingPassword ? 'Changing...' : 'Change Password'}
+                        </Button>
+                    </form>
+                </div>
+
                 {/* Pricing Section */}
                 <div className="bg-zinc-800/50 rounded-xl p-6">
                     <h2 className="font-heading text-xl font-bold text-white mb-4 flex items-center gap-2">
