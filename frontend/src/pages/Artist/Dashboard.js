@@ -231,7 +231,7 @@ const ArtistDashboard = () => {
             {/* Quick Actions */}
             <section data-testid="quick-actions">
                 <h2 className="font-heading text-2xl font-bold text-white mb-6">Quick Actions</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <Link
                         to="/artist/upload"
                         className="flex items-center gap-4 p-4 bg-zinc-800/50 rounded-xl hover:bg-zinc-800 transition-colors group"
@@ -243,6 +243,19 @@ const ArtistDashboard = () => {
                         <div>
                             <p className="font-medium text-white">Upload New Song</p>
                             <p className="text-sm text-zinc-400">Share your latest track</p>
+                        </div>
+                    </Link>
+                    <Link
+                        to="/artist/edit-profile"
+                        className="flex items-center gap-4 p-4 bg-zinc-800/50 rounded-xl hover:bg-zinc-800 transition-colors group"
+                        data-testid="action-edit-profile"
+                    >
+                        <div className="w-12 h-12 bg-orange-500/10 rounded-xl flex items-center justify-center group-hover:bg-orange-500/20 transition-colors">
+                            <UserCog className="w-6 h-6 text-orange-500" />
+                        </div>
+                        <div>
+                            <p className="font-medium text-white">Edit Profile</p>
+                            <p className="text-sm text-zinc-400">Update your artist info</p>
                         </div>
                     </Link>
                     <Link
