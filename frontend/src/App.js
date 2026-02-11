@@ -53,6 +53,10 @@ const ProtectedRoute = ({ children, requireArtist = false, requireAdmin = false 
         return <Navigate to="/" />;
     }
 
+    if (requireAdmin && user?.user_type !== 'admin') {
+        return <Navigate to="/" />;
+    }
+
     return children;
 };
 
