@@ -1,11 +1,31 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Mic2, Music, Upload, BarChart3 } from 'lucide-react';
+import { Eye, EyeOff, Mic2, Music, Upload, BarChart3, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Input } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
 import { toast } from 'sonner';
 import Logo from '../../components/Logo';
+
+const GENRES = [
+    'Hip-Hop/Rap',
+    'R&B/Soul',
+    'Pop',
+    'Rock',
+    'Electronic/EDM',
+    'Jazz',
+    'Classical',
+    'Reggae',
+    'Country',
+    'Latin',
+    'Afrobeats',
+    'Dancehall',
+    'Gospel',
+    'Alternative',
+    'Indie',
+    'Metal',
+    'Other'
+];
 
 const RegisterArtist = () => {
     const navigate = useNavigate();
@@ -13,13 +33,15 @@ const RegisterArtist = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [bio, setBio] = useState('');
+    const [genre, setGenre] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!name || !email || !password) {
-            toast.error('Please fill in all fields');
+            toast.error('Please fill in all required fields');
             return;
         }
 
@@ -30,7 +52,7 @@ const RegisterArtist = () => {
 
         setLoading(true);
         try {
-            await register(email, password, name, 'artist');
+            await register(email, password, name, 'artist', bio, genre);
             toast.success('Welcome to FyahTrakz! Start uploading your music.');
             navigate('/artist/dashboard');
         } catch (error) {
@@ -78,8 +100,8 @@ const RegisterArtist = () => {
             </div>
 
             {/* Right Side - Form */}
-            <div className="flex-1 flex items-center justify-center p-8">
-                <div className="w-full max-w-md">
+            <div className="flex-1 flex items-center justify-center p-8 overflow-y-auto">
+                <div className="w-full max-w-md py-8">
                     {/* Mobile Logo */}
                     <div className="lg:hidden flex justify-center mb-8">
                         <Logo size="large" />
@@ -99,7 +121,7 @@ const RegisterArtist = () => {
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div>
                             <label className="block text-sm font-medium text-zinc-300 mb-2">
-                                Artist / Stage Name
+                                Artist / Stage Name <span className="text-orange-500">*</span>
                             </label>
                             <Input
                                 type="text"
@@ -113,7 +135,7 @@ const RegisterArtist = () => {
 
                         <div>
                             <label className="block text-sm font-medium text-zinc-300 mb-2">
-                                Email
+                                Email <span className="text-orange-500">*</span>
                             </label>
                             <Input
                                 type="email"
@@ -127,14 +149,14 @@ const RegisterArtist = () => {
 
                         <div>
                             <label className="block text-sm font-medium text-zinc-300 mb-2">
-                                Password
+                                Password <span className="text-orange-500">*</span>
                             </label>
                             <div className="relative">
                                 <Input
                                     type={showPassword ? 'text' : 'password'}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    placeholder="Create a password"
+                                    placeholder="Create a password (min 6 chars)"
                                     className="bg-zinc-800 border-zinc-700 text-white h-12 pr-12"
                                     data-testid="artist-password-input"
                                 />
@@ -146,6 +168,41 @@ const RegisterArtist = () => {
                                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                 </button>
                             </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-300 mb-2">
+                                Primary Genre
+                            </label>
+                            <div className="relative">
+                                <select
+                                    value={genre}
+                                    onChange={(e) => setGenre(e.target.value)}
+                                    className="w-full h-12 bg-zinc-800 border border-zinc-700 text-white rounded-md px-4 pr-10 appearance-none focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    data-testid="artist-genre-select"
+                                >
+                                    <option value="">Select your primary genre</option>
+                                    {GENRES.map((g) => (
+                                        <option key={g} value={g}>{g}</option>
+                                    ))}
+                                </select>
+                                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400 pointer-events-none" />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-300 mb-2">
+                                Artist Bio
+                            </label>
+                            <textarea
+                                value={bio}
+                                onChange={(e) => setBio(e.target.value)}
+                                placeholder="Tell listeners about yourself and your music..."
+                                rows={3}
+                                className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-md px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                data-testid="artist-bio-input"
+                            />
+                            <p className="text-xs text-zinc-500 mt-1">Optional - You can add this later</p>
                         </div>
 
                         <Button
