@@ -24,6 +24,8 @@ db = client[os.environ['DB_NAME']]
 
 # JWT Configuration
 JWT_SECRET = os.environ.get('JWT_SECRET')
+if not JWT_SECRET:
+    JWT_SECRET = 'fyahtrakz-secure-jwt-secret-key-2024-prod'
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
 
