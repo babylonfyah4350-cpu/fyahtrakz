@@ -1,0 +1,146 @@
+{
+  "identity": {
+    "name": "E1",
+    "role": "Creative Designer",
+    "mission": "Create a unique, anti-AI music streaming experience with a 'Cyber-Organic' aesthetic.",
+    "principles": [
+      "Fusion over Imitation: Mix brutalism with organic curves.",
+      "Emotion First: Dark mode isn't just black; it's a mood.",
+      "Content is King: Album art is the hero.",
+      "Negative Space: Let the music breathe."
+    ]
+  },
+  "typography": {
+    "primary_font": "Manrope",
+    "secondary_font": "Space Grotesk",
+    "instructions": "Use Space Grotesk for all Headings (h1-h3) to give a tech/modern feel. Use Manrope for body text, UI elements, and metadata for maximum legibility.",
+    "scale": {
+      "h1": "text-5xl md:text-7xl font-bold tracking-tighter",
+      "h2": "text-3xl md:text-5xl font-bold tracking-tight",
+      "h3": "text-2xl md:text-3xl font-semibold",
+      "body": "text-base leading-relaxed text-zinc-400",
+      "label": "text-xs font-medium uppercase tracking-widest text-zinc-500"
+    }
+  },
+  "colors": {
+    "theme": "dark",
+    "palette": {
+      "background": "#09090b",
+      "surface": "#18181b",
+      "surface_highlight": "#27272a",
+      "primary": "#ccf381",
+      "primary_foreground": "#000000",
+      "secondary": "#b24bf3",
+      "accent": "#ff0080",
+      "text_primary": "#fafafa",
+      "text_secondary": "#a1a1aa",
+      "border": "#27272a"
+    },
+    "usage": {
+      "primary": "Use for main CTAs (Play button), active states, and key highlights.",
+      "background": "Main app background. NEVER use pure black (#000000).",
+      "surface": "Card backgrounds, sidebar background.",
+      "gradients": "Use subtle gradients of Primary to Transparent for 'glow' effects behind album art."
+    }
+  },
+  "layout": {
+    "grid_system": "Bento Grid",
+    "spacing": "Generous. Use p-6 or p-8 for container padding. Gap-6 for grids.",
+    "structure": {
+      "sidebar": "Fixed left, width 240px, glassmorphism (bg-black/40 backdrop-blur-xl).",
+      "player": "Fixed bottom, floating (m-4 rounded-2xl), glassmorphism, z-50.",
+      "main_content": "Scrollable area, padding-bottom to account for player."
+    },
+    "border_radius": {
+      "cards": "rounded-xl",
+      "buttons": "rounded-full",
+      "images": "rounded-lg"
+    }
+  },
+  "components": {
+    "cards": {
+      "style": "No border, bg-zinc-900/50 hover:bg-zinc-900 transition-all duration-300 group",
+      "interaction": "Scale up slightly on hover (scale-105). Play button appears on hover."
+    },
+    "buttons": {
+      "primary": "bg-[#ccf381] text-black hover:bg-[#bbe070] rounded-full font-bold px-8 py-3 transition-transform active:scale-95",
+      "secondary": "bg-zinc-800 text-white hover:bg-zinc-700 rounded-full font-medium px-6 py-2",
+      "ghost": "text-zinc-400 hover:text-white hover:bg-white/10 rounded-md p-2"
+    },
+    "inputs": {
+      "style": "bg-zinc-900 border-zinc-800 focus:border-[#ccf381] focus:ring-1 focus:ring-[#ccf381] rounded-md h-12"
+    },
+    "navigation": {
+      "item": "flex items-center gap-4 text-zinc-400 hover:text-white transition-colors p-3 rounded-lg hover:bg-white/5",
+      "active": "text-[#ccf381] bg-[#ccf381]/10"
+    }
+  },
+  "assets": {
+    "album_covers": [
+      {
+        "url": "https://images.unsplash.com/photo-1645919268997-e8f6d5ee81e6?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "category": "Electronic/Abstract",
+        "alt": "Abstract alien girl album art"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1642444525640-d3eb287ed389?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "category": "Chill/Lo-fi",
+        "alt": "Blue purple flower digital art"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1558932129-746d32993cc4?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "category": "Alternative",
+        "alt": "Green texture abstract"
+      }
+    ],
+    "artist_images": [
+      {
+        "url": "https://images.unsplash.com/photo-1758225709128-3721da10baf6?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "category": "Male Artist",
+        "alt": "Artist with sunglasses blue background"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1764014352810-75154d2629f4?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "category": "DJ/Producer",
+        "alt": "Artist holding sign"
+      }
+    ],
+    "hero_backgrounds": [
+      {
+        "url": "https://images.unsplash.com/photo-1765224747184-05d35f23859a?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "category": "Concert",
+        "alt": "Concert crowd hands"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1761155228019-0a29e3f6c8e9?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "category": "Atmosphere",
+        "alt": "Silhouettes against light"
+      }
+    ]
+  },
+  "visual_enhancers": {
+    "glassmorphism": "backdrop-blur-xl bg-black/40 border border-white/5",
+    "gradients": "bg-gradient-to-b from-zinc-900/0 to-zinc-900",
+    "shadows": "shadow-2xl shadow-black/50",
+    "noise": "Add a subtle noise texture overlay to the background if possible for texture."
+  },
+  "instructions_to_main_agent": [
+    "Implement the 'Electric Lime' (#ccf381) as the core brand identity.",
+    "Ensure the Player component is persistent and floats above the content at the bottom.",
+    "Use the 'Bento Grid' layout for the Browse/Discover page.",
+    "Strictly follow the Typography scale. Do not use default sizes.",
+    "Use the provided image URLs for mock data. Do not use placeholders.",
+    "For the 'Now Playing' view, use a large, blurred version of the album art as the background.",
+    "Ensure all interactive elements have hover states defined in the components section.",
+    "Use 'lucide-react' for icons.",
+    "Install 'sonner' for notifications.",
+    "Install 'recharts' if charts are needed for the Artist Dashboard."
+  ],
+  "universal_guidelines": [
+    "Avoid 'AI Slop': No generic centered layouts.",
+    "Dark Mode Only: Do not implement a light mode toggle.",
+    "Micro-animations: Add 'active:scale-95' to all buttons.",
+    "Accessibility: Ensure text contrast on the dark background meets WCAG AA.",
+    "Data-TestID: Add data-testid to all interactive elements."
+  ]
+}
