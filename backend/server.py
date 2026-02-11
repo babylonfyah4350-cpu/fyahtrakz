@@ -131,6 +131,13 @@ class PlaylistResponse(BaseModel):
 class ListeningHistoryCreate(BaseModel):
     song_id: str
 
+class PaymentRequest(BaseModel):
+    origin_url: str
+    payment_type: str  # "upload" or "subscription"
+
+class UploadCreditRequest(BaseModel):
+    origin_url: str
+
 # ============== AUTH HELPERS ==============
 
 def hash_password(password: str) -> str:
