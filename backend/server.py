@@ -679,6 +679,19 @@ async def search(q: str = Query(..., min_length=1), limit: int = Query(10, le=50
 
 @api_router.get("/recommendations")
 async def get_recommendations(current_user: dict = Depends(get_current_user)):
+    # Check subscription for listeners
+    if current_user["user_type"] == "listener":
+        active_sub = await db.subscriptions.find_one({
+            "user_id": current_user["id"],
+            "status": "active",
+            "expires_at": {"$gt": datetime.now(timezone.utc).isoformat()}
+        })
+        if not active_sub:
+            raise HTTPException(
+                status_code=402,
+                detail="Subscription required. Please subscribe to access music streaming."
+            )
+    
     # Get user's listening history
     history = await db.listening_history.find(
         {"user_id": current_user["id"]}
