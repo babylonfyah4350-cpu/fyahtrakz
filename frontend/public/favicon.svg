@@ -1,39 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
   <defs>
-    <linearGradient id="pulseGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#ccf381;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#a8e063;stop-opacity:1" />
+    <linearGradient id="fireGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ff4500;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#ff8c00;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ffd700;stop-opacity:1" />
     </linearGradient>
     <linearGradient id="darkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#18181b;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#09090b;stop-opacity:1" />
+      <stop offset="0%" style="stop-color:#1a1a1a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0d0d0d;stop-opacity:1" />
     </linearGradient>
   </defs>
   
   <!-- Background circle -->
-  <circle cx="256" cy="256" r="230" fill="url(#pulseGradient)"/>
+  <circle cx="100" cy="100" r="90" fill="url(#fireGradient)"/>
   
   <!-- Inner dark circle -->
-  <circle cx="256" cy="256" r="180" fill="url(#darkGradient)"/>
+  <circle cx="100" cy="100" r="70" fill="url(#darkGradient)"/>
   
-  <!-- Sound wave / pulse lines -->
-  <g stroke="#ccf381" stroke-width="12" stroke-linecap="round" fill="none">
-    <!-- Left wave -->
-    <path d="M 140 256 Q 140 190, 140 175 Q 140 160, 140 256 Q 140 350, 140 335" opacity="0.6"/>
-    <path d="M 115 256 Q 115 150, 115 135 Q 115 120, 115 256 Q 115 390, 115 375" opacity="0.4"/>
-    
-    <!-- Center bars (equalizer style) -->
-    <line x1="190" y1="310" x2="190" y2="202"/>
-    <line x1="228" y1="340" x2="228" y2="172"/>
-    <line x1="266" y1="365" x2="266" y2="147"/>
-    <line x1="304" y1="340" x2="304" y2="172"/>
-    <line x1="342" y1="310" x2="342" y2="202"/>
-    
-    <!-- Right wave -->
-    <path d="M 392 256 Q 392 190, 392 175 Q 392 160, 392 256 Q 392 350, 392 335" opacity="0.6"/>
-    <path d="M 417 256 Q 417 150, 417 135 Q 417 120, 417 256 Q 417 390, 417 375" opacity="0.4"/>
+  <!-- Sound wave / equalizer bars -->
+  <g stroke="url(#fireGradient)" stroke-width="5" stroke-linecap="round" fill="none">
+    <line x1="60" y1="125" x2="60" y2="95"/>
+    <line x1="80" y1="135" x2="80" y2="75"/>
+    <line x1="100" y1="145" x2="100" y2="55"/>
+    <line x1="120" y1="135" x2="120" y2="75"/>
+    <line x1="140" y1="125" x2="140" y2="95"/>
   </g>
   
-  <!-- Pulse ring effect -->
-  <circle cx="256" cy="256" r="218" fill="none" stroke="#ccf381" stroke-width="5" opacity="0.3"/>
+  <!-- Fire flicker effect -->
+  <g fill="#ffd700" opacity="0.8">
+    <ellipse cx="100" cy="52" rx="4" ry="6"/>
+    <ellipse cx="80" cy="72" rx="3" ry="5"/>
+    <ellipse cx="120" cy="72" rx="3" ry="5"/>
+  </g>
+  
+  <!-- Outer glow ring -->
+  <circle cx="100" cy="100" r="85" fill="none" stroke="#ff8c00" stroke-width="2" opacity="0.4"/>
 </svg>
