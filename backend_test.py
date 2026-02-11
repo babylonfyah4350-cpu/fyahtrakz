@@ -126,7 +126,10 @@ class TunePulseAPITester:
             'genre': 'Pop',
             'description': 'A test album'
         }
-        success, response = self.run_test("Create Album", "POST", "albums", 200, album_data, token=self.artist_token)
+        
+        # Albums endpoint expects form data, not JSON
+        files = {}  # No files, just form data
+        success, response = self.run_test("Create Album", "POST", "albums", 200, album_data, files, self.artist_token)
         if success and 'id' in response:
             self.album_id = response['id']
             return True
