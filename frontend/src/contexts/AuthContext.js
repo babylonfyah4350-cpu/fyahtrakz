@@ -61,6 +61,20 @@ export const AuthProvider = ({ children }) => {
         return userData;
     };
 
+    const refreshUser = useCallback(async () => {
+        if (token) {
+            try {
+                const response = await axios.get(`${API}/auth/me`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setUser(response.data);
+                return response.data;
+            } catch (error) {
+                console.error('Refresh user error:', error);
+            }
+        }
+    }, [token]);
+
     const value = {
         user,
         token,
@@ -68,6 +82,7 @@ export const AuthProvider = ({ children }) => {
         login,
         register,
         logout,
+        refreshUser,
         isAuthenticated: !!user,
         isArtist: user?.user_type === 'artist'
     };
