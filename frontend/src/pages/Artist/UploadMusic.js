@@ -99,7 +99,7 @@ const UploadMusic = () => {
             if (coverFile) {
                 formData.append('cover_file', coverFile);
             }
-            if (albumId) {
+            if (albumId && albumId !== 'none') {
                 formData.append('album_id', albumId);
             }
 
@@ -281,7 +281,7 @@ const UploadMusic = () => {
                                     <SelectValue placeholder="Select album or leave empty" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-zinc-900 border-zinc-800">
-                                    <SelectItem value="" className="hover:bg-zinc-800">
+                                    <SelectItem value="none" className="hover:bg-zinc-800">
                                         No album (Single)
                                     </SelectItem>
                                     {albums.map((album) => (
