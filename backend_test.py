@@ -127,8 +127,8 @@ class TunePulseAPITester:
             'description': 'A test album'
         }
         
-        # Albums endpoint expects form data, not JSON
-        files = {}  # No files, just form data
+        # Albums endpoint expects form data, not JSON - use files parameter to trigger form data
+        files = {'dummy': ('', '')}  # Empty file to trigger form data mode
         success, response = self.run_test("Create Album", "POST", "albums", 200, album_data, files, self.artist_token)
         if success and 'id' in response:
             self.album_id = response['id']
