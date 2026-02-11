@@ -208,6 +208,8 @@ async def register(user: UserCreate):
         "avatar": None,
         "bio": user.bio,
         "genre": user.genre if user.user_type == "artist" else None,
+        "country_code": user.country_code if user.user_type == "artist" else None,
+        "phone_number": user.phone_number if user.user_type == "artist" else None,
         "followers": [],
         "following": [],
         "created_at": datetime.now(timezone.utc).isoformat()
@@ -225,6 +227,8 @@ async def register(user: UserCreate):
             "avatar": user_doc["avatar"],
             "bio": user_doc["bio"],
             "genre": user_doc.get("genre"),
+            "country_code": user_doc.get("country_code"),
+            "phone_number": user_doc.get("phone_number"),
             "created_at": user_doc["created_at"]
         }
     }
