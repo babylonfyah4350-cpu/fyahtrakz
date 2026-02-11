@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Music, Play, Upload, Disc, TrendingUp, BarChart3 } from 'lucide-react';
+import { Music, Play, Upload, Disc, TrendingUp, BarChart3, Trash2, MoreVertical } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../../components/ui/button';
+import { toast } from 'sonner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -12,27 +13,52 @@ const ArtistDashboard = () => {
     const { token, isArtist, isAuthenticated, user } = useAuth();
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [deleteConfirm, setDeleteConfirm] = useState(null);
+    const [deleting, setDeleting] = useState(false);
+
+    const fetchStats = async () => {
+        try {
+            const response = await axios.get(`${API}/stats/artist`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setStats(response.data);
+        } catch (error) {
+            console.error('Failed to fetch stats:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
         if (!isAuthenticated || !isArtist) {
             navigate('/');
             return;
         }
-
-        const fetchStats = async () => {
-            try {
-                const response = await axios.get(`${API}/stats/artist`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                setStats(response.data);
-            } catch (error) {
-                console.error('Failed to fetch stats:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchStats();
     }, [token, isArtist, isAuthenticated, navigate]);
+
+    const handleDeleteSong = async (songId, songTitle) => {
+        if (deleteConfirm !== songId) {
+            setDeleteConfirm(songId);
+            return;
+        }
+
+        setDeleting(true);
+        try {
+            await axios.delete(`${API}/songs/${songId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            toast.success(`"${songTitle}" has been deleted`);
+            setDeleteConfirm(null);
+            // Refresh stats
+            fetchStats();
+        } catch (error) {
+            console.error('Delete failed:', error);
+            toast.error(error.response?.data?.detail || 'Failed to delete song');
+        } finally {
+            setDeleting(false);
+        }
+    };
 
     if (!isArtist) {
         return null;
@@ -116,7 +142,7 @@ const ArtistDashboard = () => {
             <section className="mb-10" data-testid="top-songs-section">
                 <div className="flex items-center gap-3 mb-6">
                     <TrendingUp className="w-5 h-5 text-lime" />
-                    <h2 className="font-heading text-2xl font-bold text-white">Your Top Songs</h2>
+                    <h2 className="font-heading text-2xl font-bold text-white">Your Songs</h2>
                 </div>
                 
                 {stats?.top_songs?.length > 0 ? (
@@ -128,6 +154,7 @@ const ArtistDashboard = () => {
                                     <th className="text-left text-xs font-medium text-zinc-500 uppercase tracking-wider p-4">Title</th>
                                     <th className="text-left text-xs font-medium text-zinc-500 uppercase tracking-wider p-4">Genre</th>
                                     <th className="text-right text-xs font-medium text-zinc-500 uppercase tracking-wider p-4">Plays</th>
+                                    <th className="text-right text-xs font-medium text-zinc-500 uppercase tracking-wider p-4">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -153,6 +180,36 @@ const ArtistDashboard = () => {
                                         <td className="p-4 text-zinc-400">{song.genre}</td>
                                         <td className="p-4 text-right text-zinc-400">
                                             {song.play_count?.toLocaleString() || 0}
+                                        </td>
+                                        <td className="p-4 text-right">
+                                            {deleteConfirm === song.id ? (
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <button
+                                                        onClick={() => setDeleteConfirm(null)}
+                                                        className="px-3 py-1 text-sm text-zinc-400 hover:text-white"
+                                                        disabled={deleting}
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteSong(song.id, song.title)}
+                                                        className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+                                                        disabled={deleting}
+                                                        data-testid={`confirm-delete-${song.id}`}
+                                                    >
+                                                        {deleting ? 'Deleting...' : 'Confirm'}
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleDeleteSong(song.id, song.title)}
+                                                    className="p-2 text-zinc-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                                                    title="Delete song"
+                                                    data-testid={`delete-song-${song.id}`}
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
