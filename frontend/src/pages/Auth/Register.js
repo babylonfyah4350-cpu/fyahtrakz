@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Music, Eye, EyeOff, Mic2, Headphones } from 'lucide-react';
+import { Eye, EyeOff, Mic2, Headphones } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Input } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
 import { toast } from 'sonner';
+import Logo from '../../components/Logo';
 
 const Register = () => {
     const navigate = useNavigate();
@@ -45,11 +46,8 @@ const Register = () => {
             <div className="w-full max-w-md">
                 {/* Logo */}
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center gap-3 mb-4">
-                        <div className="w-12 h-12 bg-lime rounded-xl flex items-center justify-center">
-                            <Music className="w-7 h-7 text-black" />
-                        </div>
-                        <span className="font-heading text-2xl font-bold text-white">TunePulse</span>
+                    <div className="flex justify-center mb-4">
+                        <Logo size="large" />
                     </div>
                     <h1 className="font-heading text-3xl font-bold text-white mb-2">Create account</h1>
                     <p className="text-zinc-400">Start your musical journey</p>
