@@ -873,7 +873,10 @@ async def get_artist_stats(current_user: dict = Depends(get_current_user)):
     album_count = await db.albums.count_documents({"artist_id": current_user["id"]})
     
     # Top songs (only fetch needed fields, exclude large audio_url)
-    top_songs = sorted(songs, key=lambda x: x.get("play_count", 0), reverse=True)[:5]
+    top_songs = await db.songs.find(
+        {"artist_id": current_user["id"]},
+        {"_id": 0, "audio_url": 0}
+    ).sort("play_count", -1).limit(5).to_list(5)
     
     return {
         "total_plays": total_plays,
