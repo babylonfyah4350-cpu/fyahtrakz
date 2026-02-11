@@ -107,6 +107,8 @@ const EditProfile = () => {
     const [website, setWebsite] = useState('');
     const [instagram, setInstagram] = useState('');
     const [twitter, setTwitter] = useState('');
+    const [facebook, setFacebook] = useState('');
+    const [tiktok, setTiktok] = useState('');
 
     useEffect(() => {
         if (!isAuthenticated || !isArtist) {
@@ -124,6 +126,8 @@ const EditProfile = () => {
             setWebsite(user.website || '');
             setInstagram(user.instagram || '');
             setTwitter(user.twitter || '');
+            setFacebook(user.facebook || '');
+            setTiktok(user.tiktok || '');
             setAvatarPreview(user.avatar || null);
         }
     }, [user, isAuthenticated, isArtist, navigate]);
