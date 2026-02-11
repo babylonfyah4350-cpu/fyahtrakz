@@ -930,6 +930,10 @@ async def create_subscription_checkout(
     if active_sub:
         raise HTTPException(status_code=400, detail="You already have an active subscription")
     
+    # Get price from platform settings
+    settings = await get_platform_settings()
+    subscription_price = settings.get("listener_subscription_price", DEFAULT_LISTENER_SUBSCRIPTION_PRICE)
+    
     host_url = str(request.base_url).rstrip('/')
     webhook_url = f"{host_url}/api/webhook/stripe"
     stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
@@ -938,7 +942,7 @@ async def create_subscription_checkout(
     cancel_url = f"{payment_req.origin_url}/payment/cancel"
     
     checkout_request = CheckoutSessionRequest(
-        amount=LISTENER_SUBSCRIPTION_PRICE,
+        amount=subscription_price,
         currency="aud",
         success_url=success_url,
         cancel_url=cancel_url,
@@ -957,7 +961,7 @@ async def create_subscription_checkout(
         "session_id": session.session_id,
         "user_id": current_user["id"],
         "user_email": current_user["email"],
-        "amount": LISTENER_SUBSCRIPTION_PRICE,
+        "amount": subscription_price,
         "currency": "aud",
         "payment_type": "subscription",
         "status": "pending",
