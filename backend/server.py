@@ -818,6 +818,282 @@ async def get_artist_stats(current_user: dict = Depends(get_current_user)):
 async def root():
     return {"message": "FyahTrakz API v1.0"}
 
+# ============== PAYMENT ROUTES ==============
+
+@api_router.post("/payments/subscription/checkout")
+async def create_subscription_checkout(
+    request: Request,
+    payment_req: PaymentRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create a Stripe checkout session for listener subscription"""
+    if current_user["user_type"] != "listener":
+        raise HTTPException(status_code=400, detail="Only listeners can subscribe")
+    
+    # Check if user already has active subscription
+    active_sub = await db.subscriptions.find_one({
+        "user_id": current_user["id"],
+        "status": "active",
+        "expires_at": {"$gt": datetime.now(timezone.utc).isoformat()}
+    })
+    if active_sub:
+        raise HTTPException(status_code=400, detail="You already have an active subscription")
+    
+    host_url = str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    
+    success_url = f"{payment_req.origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{payment_req.origin_url}/payment/cancel"
+    
+    checkout_request = CheckoutSessionRequest(
+        amount=LISTENER_SUBSCRIPTION_PRICE,
+        currency="aud",
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata={
+            "user_id": current_user["id"],
+            "user_email": current_user["email"],
+            "payment_type": "subscription"
+        }
+    )
+    
+    session: CheckoutSessionResponse = await stripe_checkout.create_checkout_session(checkout_request)
+    
+    # Create payment transaction record
+    transaction_doc = {
+        "id": str(uuid.uuid4()),
+        "session_id": session.session_id,
+        "user_id": current_user["id"],
+        "user_email": current_user["email"],
+        "amount": LISTENER_SUBSCRIPTION_PRICE,
+        "currency": "aud",
+        "payment_type": "subscription",
+        "status": "pending",
+        "payment_status": "initiated",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.payment_transactions.insert_one(transaction_doc)
+    
+    return {"checkout_url": session.url, "session_id": session.session_id}
+
+@api_router.post("/payments/upload/checkout")
+async def create_upload_checkout(
+    request: Request,
+    payment_req: UploadCreditRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create a Stripe checkout session for artist song upload credit"""
+    if current_user["user_type"] != "artist":
+        raise HTTPException(status_code=400, detail="Only artists can purchase upload credits")
+    
+    host_url = str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    
+    success_url = f"{payment_req.origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{payment_req.origin_url}/artist/upload"
+    
+    checkout_request = CheckoutSessionRequest(
+        amount=ARTIST_UPLOAD_PRICE,
+        currency="aud",
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata={
+            "user_id": current_user["id"],
+            "user_email": current_user["email"],
+            "payment_type": "upload_credit"
+        }
+    )
+    
+    session: CheckoutSessionResponse = await stripe_checkout.create_checkout_session(checkout_request)
+    
+    # Create payment transaction record
+    transaction_doc = {
+        "id": str(uuid.uuid4()),
+        "session_id": session.session_id,
+        "user_id": current_user["id"],
+        "user_email": current_user["email"],
+        "amount": ARTIST_UPLOAD_PRICE,
+        "currency": "aud",
+        "payment_type": "upload_credit",
+        "status": "pending",
+        "payment_status": "initiated",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.payment_transactions.insert_one(transaction_doc)
+    
+    return {"checkout_url": session.url, "session_id": session.session_id}
+
+@api_router.get("/payments/status/{session_id}")
+async def get_payment_status(
+    request: Request,
+    session_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Check payment status and update subscription/credits if paid"""
+    host_url = str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    
+    # Get checkout status from Stripe
+    checkout_status: CheckoutStatusResponse = await stripe_checkout.get_checkout_status(session_id)
+    
+    # Find the transaction
+    transaction = await db.payment_transactions.find_one({"session_id": session_id})
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    
+    # Verify transaction belongs to current user
+    if transaction["user_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Update transaction status
+    new_status = "completed" if checkout_status.payment_status == "paid" else checkout_status.status
+    await db.payment_transactions.update_one(
+        {"session_id": session_id},
+        {"$set": {
+            "status": new_status,
+            "payment_status": checkout_status.payment_status,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # If payment successful and not already processed
+    if checkout_status.payment_status == "paid" and transaction["payment_status"] != "paid":
+        payment_type = checkout_status.metadata.get("payment_type") or transaction.get("payment_type")
+        
+        if payment_type == "subscription":
+            # Create/update subscription
+            subscription_doc = {
+                "id": str(uuid.uuid4()),
+                "user_id": current_user["id"],
+                "status": "active",
+                "started_at": datetime.now(timezone.utc).isoformat(),
+                "expires_at": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat(),
+                "payment_session_id": session_id
+            }
+            await db.subscriptions.insert_one(subscription_doc)
+            
+            # Update user subscription status
+            await db.users.update_one(
+                {"id": current_user["id"]},
+                {"$set": {"has_subscription": True, "subscription_expires": subscription_doc["expires_at"]}}
+            )
+            
+        elif payment_type == "upload_credit":
+            # Add upload credit to user
+            await db.users.update_one(
+                {"id": current_user["id"]},
+                {"$inc": {"upload_credits": 1}}
+            )
+    
+    return {
+        "status": new_status,
+        "payment_status": checkout_status.payment_status,
+        "amount": checkout_status.amount_total / 100,  # Convert from cents
+        "currency": checkout_status.currency,
+        "payment_type": transaction.get("payment_type")
+    }
+
+@api_router.post("/webhook/stripe")
+async def stripe_webhook(request: Request):
+    """Handle Stripe webhook events"""
+    body = await request.body()
+    signature = request.headers.get("Stripe-Signature")
+    
+    host_url = str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    
+    try:
+        webhook_response = await stripe_checkout.handle_webhook(body, signature)
+        
+        # Update transaction based on webhook event
+        if webhook_response.session_id:
+            await db.payment_transactions.update_one(
+                {"session_id": webhook_response.session_id},
+                {"$set": {
+                    "payment_status": webhook_response.payment_status,
+                    "webhook_event_id": webhook_response.event_id,
+                    "webhook_event_type": webhook_response.event_type,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            
+            # Process successful payment
+            if webhook_response.payment_status == "paid":
+                transaction = await db.payment_transactions.find_one({"session_id": webhook_response.session_id})
+                if transaction:
+                    user_id = webhook_response.metadata.get("user_id") or transaction.get("user_id")
+                    payment_type = webhook_response.metadata.get("payment_type") or transaction.get("payment_type")
+                    
+                    if payment_type == "subscription":
+                        # Check if subscription already exists for this session
+                        existing = await db.subscriptions.find_one({"payment_session_id": webhook_response.session_id})
+                        if not existing:
+                            subscription_doc = {
+                                "id": str(uuid.uuid4()),
+                                "user_id": user_id,
+                                "status": "active",
+                                "started_at": datetime.now(timezone.utc).isoformat(),
+                                "expires_at": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat(),
+                                "payment_session_id": webhook_response.session_id
+                            }
+                            await db.subscriptions.insert_one(subscription_doc)
+                            await db.users.update_one(
+                                {"id": user_id},
+                                {"$set": {"has_subscription": True, "subscription_expires": subscription_doc["expires_at"]}}
+                            )
+                    
+                    elif payment_type == "upload_credit":
+                        # Check if credit already added for this session
+                        if not transaction.get("credit_added"):
+                            await db.users.update_one(
+                                {"id": user_id},
+                                {"$inc": {"upload_credits": 1}}
+                            )
+                            await db.payment_transactions.update_one(
+                                {"session_id": webhook_response.session_id},
+                                {"$set": {"credit_added": True}}
+                            )
+        
+        return {"status": "success"}
+    except Exception as e:
+        logger.error(f"Webhook error: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.get("/payments/subscription/status")
+async def get_subscription_status(current_user: dict = Depends(get_current_user)):
+    """Check if user has active subscription"""
+    if current_user["user_type"] != "listener":
+        return {"has_subscription": True, "is_artist": True}  # Artists don't need subscription
+    
+    # Check for active subscription
+    active_sub = await db.subscriptions.find_one({
+        "user_id": current_user["id"],
+        "status": "active",
+        "expires_at": {"$gt": datetime.now(timezone.utc).isoformat()}
+    })
+    
+    return {
+        "has_subscription": active_sub is not None,
+        "expires_at": active_sub["expires_at"] if active_sub else None,
+        "price": LISTENER_SUBSCRIPTION_PRICE
+    }
+
+@api_router.get("/payments/upload-credits")
+async def get_upload_credits(current_user: dict = Depends(get_current_user)):
+    """Get artist's upload credits"""
+    if current_user["user_type"] != "artist":
+        raise HTTPException(status_code=400, detail="Only artists have upload credits")
+    
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0, "upload_credits": 1})
+    return {
+        "credits": user.get("upload_credits", 0),
+        "price_per_upload": ARTIST_UPLOAD_PRICE
+    }
+
 # Include router
 app.include_router(api_router)
 
