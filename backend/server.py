@@ -709,8 +709,16 @@ async def get_featured():
         {"_id": 0, "password": 0}
     ).limit(6).to_list(6)
     
-    for artist in top_artists:
-        artist["song_count"] = await db.songs.count_documents({"artist_id": artist["id"]})
+    # Batch get song counts for artists
+    if top_artists:
+        artist_ids = [a["id"] for a in top_artists]
+        counts_cursor = db.songs.aggregate([
+            {"$match": {"artist_id": {"$in": artist_ids}}},
+            {"$group": {"_id": "$artist_id", "count": {"$sum": 1}}}
+        ])
+        counts_dict = {c["_id"]: c["count"] for c in await counts_cursor.to_list(len(artist_ids))}
+        for artist in top_artists:
+            artist["song_count"] = counts_dict.get(artist["id"], 0)
     
     # Get popular albums
     popular_albums = await db.albums.find({}, {"_id": 0}).sort("song_count", -1).limit(6).to_list(6)
