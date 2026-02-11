@@ -1540,8 +1540,8 @@ async def admin_get_settings(admin: dict = Depends(get_admin_user)):
     if not settings:
         settings = {
             "id": "platform_settings",
-            "artist_upload_price": ARTIST_UPLOAD_PRICE,
-            "listener_subscription_price": LISTENER_SUBSCRIPTION_PRICE,
+            "artist_upload_price": DEFAULT_ARTIST_UPLOAD_PRICE,
+            "listener_subscription_price": DEFAULT_LISTENER_SUBSCRIPTION_PRICE,
             "currency": "AUD",
             "allow_free_uploads": False,
             "require_subscription": True,
