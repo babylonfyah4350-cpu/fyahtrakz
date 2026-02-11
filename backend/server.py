@@ -528,10 +528,16 @@ async def get_artists(limit: int = Query(20, le=100), skip: int = 0):
         {"_id": 0, "password": 0}
     ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     
-    # Add song count for each artist
-    for artist in artists:
-        song_count = await db.songs.count_documents({"artist_id": artist["id"]})
-        artist["song_count"] = song_count
+    # Add song count for each artist - batch using aggregation
+    if artists:
+        artist_ids = [a["id"] for a in artists]
+        counts_cursor = db.songs.aggregate([
+            {"$match": {"artist_id": {"$in": artist_ids}}},
+            {"$group": {"_id": "$artist_id", "count": {"$sum": 1}}}
+        ])
+        counts_dict = {c["_id"]: c["count"] for c in await counts_cursor.to_list(len(artist_ids))}
+        for artist in artists:
+            artist["song_count"] = counts_dict.get(artist["id"], 0)
     
     return artists
 
