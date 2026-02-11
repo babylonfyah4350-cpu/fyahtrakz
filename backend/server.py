@@ -982,6 +982,10 @@ async def create_upload_checkout(
     if current_user["user_type"] != "artist":
         raise HTTPException(status_code=400, detail="Only artists can purchase upload credits")
     
+    # Get price from platform settings
+    settings = await get_platform_settings()
+    upload_price = settings.get("artist_upload_price", DEFAULT_ARTIST_UPLOAD_PRICE)
+    
     host_url = str(request.base_url).rstrip('/')
     webhook_url = f"{host_url}/api/webhook/stripe"
     stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
@@ -990,7 +994,7 @@ async def create_upload_checkout(
     cancel_url = f"{payment_req.origin_url}/artist/upload"
     
     checkout_request = CheckoutSessionRequest(
-        amount=ARTIST_UPLOAD_PRICE,
+        amount=upload_price,
         currency="aud",
         success_url=success_url,
         cancel_url=cancel_url,
@@ -1009,7 +1013,7 @@ async def create_upload_checkout(
         "session_id": session.session_id,
         "user_id": current_user["id"],
         "user_email": current_user["email"],
-        "amount": ARTIST_UPLOAD_PRICE,
+        "amount": upload_price,
         "currency": "aud",
         "payment_type": "upload_credit",
         "status": "pending",
