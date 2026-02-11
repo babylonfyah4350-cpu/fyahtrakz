@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { CheckCircle, XCircle, Loader2, Music, CreditCard } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { Button } from '../components/ui/button';
-import Logo from '../components/Logo';
+import { useAuth } from '../../contexts/AuthContext';
+import { Button } from '../../components/ui/button';
+import Logo from '../../components/Logo';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 

@@ -1,8 +1,8 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { XCircle, ArrowLeft } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import Logo from '../components/Logo';
+import { Button } from '../../components/ui/button';
+import Logo from '../../components/Logo';
 
 const PaymentCancel = () => {
     const navigate = useNavigate();
