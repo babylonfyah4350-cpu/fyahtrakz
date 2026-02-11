@@ -741,16 +741,29 @@ async def get_listening_history(
         {"_id": 0}
     ).sort("played_at", -1).limit(limit).to_list(limit)
     
-    # Get song details
-    songs = []
+    # Get unique song ids preserving order
     seen_ids = set()
+    unique_history = []
     for h in history:
         if h["song_id"] not in seen_ids:
-            song = await db.songs.find_one({"id": h["song_id"]}, {"_id": 0})
-            if song:
+            seen_ids.add(h["song_id"])
+            unique_history.append(h)
+    
+    # Batch fetch all songs
+    song_ids = [h["song_id"] for h in unique_history]
+    if song_ids:
+        songs_cursor = db.songs.find({"id": {"$in": song_ids}}, {"_id": 0})
+        songs_dict = {s["id"]: s for s in await songs_cursor.to_list(len(song_ids))}
+        
+        # Build result preserving order and adding played_at
+        songs = []
+        for h in unique_history:
+            if h["song_id"] in songs_dict:
+                song = songs_dict[h["song_id"]].copy()
                 song["played_at"] = h["played_at"]
                 songs.append(song)
-                seen_ids.add(h["song_id"])
+    else:
+        songs = []
     
     return songs
 
