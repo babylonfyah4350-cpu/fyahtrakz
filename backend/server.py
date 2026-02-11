@@ -798,7 +798,7 @@ async def get_artist_stats(current_user: dict = Depends(get_current_user)):
 
 @api_router.get("/")
 async def root():
-    return {"message": "TunePulse API v1.0"}
+    return {"message": "FyahTrakz API v1.0"}
 
 # Include router
 app.include_router(api_router)

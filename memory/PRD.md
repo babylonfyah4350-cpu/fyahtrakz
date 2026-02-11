@@ -1,4 +1,4 @@
-# TunePulse - Music Streaming Platform PRD
+# FyahTrakz - Music Streaming Platform PRD
 
 ## Original Problem Statement
 Build a Music Streaming app similar to Spotify with:

@@ -59,7 +59,7 @@ const Logo = ({ size = 'default', showText = true, className = '' }) => {
             
             {showText && (
                 <span className={`font-heading ${text} font-bold text-white`}>
-                    TunePulse
+                    FyahTrakz
                 </span>
             )}
         </div>
