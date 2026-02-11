@@ -185,6 +185,28 @@ const AppRoutes = () => {
                 }
             />
 
+            {/* Payment Routes */}
+            <Route
+                path="/subscribe"
+                element={
+                    <ProtectedRoute>
+                        <Subscribe />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/payment/success"
+                element={
+                    <ProtectedRoute>
+                        <PaymentSuccess />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/payment/cancel"
+                element={<PaymentCancel />}
+            />
+
             {/* Catch all */}
             <Route path="*" element={<Navigate to="/" />} />
         </Routes>
