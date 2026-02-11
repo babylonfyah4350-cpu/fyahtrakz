@@ -219,6 +219,68 @@ const AppRoutes = () => {
                 element={<PaymentCancel />}
             />
 
+            {/* Admin Routes */}
+            <Route
+                path="/admin"
+                element={
+                    <ProtectedRoute requireAdmin>
+                        <AppLayout>
+                            <AdminDashboard />
+                        </AppLayout>
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/admin/users"
+                element={
+                    <ProtectedRoute requireAdmin>
+                        <AppLayout>
+                            <AdminUsers />
+                        </AppLayout>
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/admin/content"
+                element={
+                    <ProtectedRoute requireAdmin>
+                        <AppLayout>
+                            <AdminContent />
+                        </AppLayout>
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/admin/finance"
+                element={
+                    <ProtectedRoute requireAdmin>
+                        <AppLayout>
+                            <AdminFinance />
+                        </AppLayout>
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/admin/settings"
+                element={
+                    <ProtectedRoute requireAdmin>
+                        <AppLayout>
+                            <AdminSettings />
+                        </AppLayout>
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/admin/analytics"
+                element={
+                    <ProtectedRoute requireAdmin>
+                        <AppLayout>
+                            <AdminAnalytics />
+                        </AppLayout>
+                    </ProtectedRoute>
+                }
+            />
+
             {/* Catch all */}
             <Route path="*" element={<Navigate to="/" />} />
         </Routes>
