@@ -70,6 +70,8 @@ class UserCreate(BaseModel):
     user_type: str = "listener"  # "listener" or "artist"
     bio: Optional[str] = None
     genre: Optional[str] = None  # Primary genre for artists
+    country_code: Optional[str] = None  # Phone country code for artists
+    phone_number: Optional[str] = None  # Phone number for artists
 
 class PasswordChange(BaseModel):
     current_password: str
