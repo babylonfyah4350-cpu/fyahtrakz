@@ -1168,6 +1168,10 @@ async def get_subscription_status(current_user: dict = Depends(get_current_user)
     if current_user["user_type"] != "listener":
         return {"has_subscription": True, "is_artist": True}  # Artists don't need subscription
     
+    # Get price from platform settings
+    settings = await get_platform_settings()
+    subscription_price = settings.get("listener_subscription_price", DEFAULT_LISTENER_SUBSCRIPTION_PRICE)
+    
     # Check for active subscription
     active_sub = await db.subscriptions.find_one({
         "user_id": current_user["id"],
@@ -1178,7 +1182,7 @@ async def get_subscription_status(current_user: dict = Depends(get_current_user)
     return {
         "has_subscription": active_sub is not None,
         "expires_at": active_sub["expires_at"] if active_sub else None,
-        "price": LISTENER_SUBSCRIPTION_PRICE
+        "price": subscription_price
     }
 
 @api_router.get("/payments/upload-credits")
@@ -1187,10 +1191,16 @@ async def get_upload_credits(current_user: dict = Depends(get_current_user)):
     if current_user["user_type"] != "artist":
         raise HTTPException(status_code=400, detail="Only artists have upload credits")
     
+    # Get settings from database
+    settings = await get_platform_settings()
+    upload_price = settings.get("artist_upload_price", DEFAULT_ARTIST_UPLOAD_PRICE)
+    allow_free = settings.get("allow_free_uploads", False)
+    
     user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0, "upload_credits": 1})
     return {
         "credits": user.get("upload_credits", 0),
-        "price_per_upload": ARTIST_UPLOAD_PRICE
+        "price_per_upload": upload_price,
+        "free_uploads": allow_free
     }
 
 # ============== ADMIN ROUTES ==============
