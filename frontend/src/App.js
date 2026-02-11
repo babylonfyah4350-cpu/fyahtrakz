@@ -14,6 +14,7 @@ import Search from './pages/Search';
 import Library from './pages/Library';
 import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
+import RegisterArtist from './pages/Auth/RegisterArtist';
 import ArtistProfile from './pages/ArtistProfile';
 import Artists from './pages/Artists';
 import PlaylistDetail from './pages/PlaylistDetail';
@@ -106,6 +107,18 @@ const AppRoutes = () => {
                     ) : (
                         <AuthLayout>
                             <Register />
+                        </AuthLayout>
+                    )
+                }
+            />
+            <Route
+                path="/register/artist"
+                element={
+                    isAuthenticated ? (
+                        <Navigate to="/" />
+                    ) : (
+                        <AuthLayout>
+                            <RegisterArtist />
                         </AuthLayout>
                     )
                 }
