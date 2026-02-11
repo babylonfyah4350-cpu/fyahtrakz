@@ -1,7 +1,8 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, Search, Library, PlusCircle, Mic2, LogOut, Music, Upload, BarChart3 } from 'lucide-react';
+import { Home, Search, Library, PlusCircle, Mic2, LogOut, Upload, BarChart3 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import Logo from '../Logo';
 
 const Sidebar = () => {
     const { user, logout, isArtist } = useAuth();
@@ -27,12 +28,7 @@ const Sidebar = () => {
         <aside className="sidebar" data-testid="sidebar">
             {/* Logo */}
             <div className="p-6">
-                <div className="flex items-center gap-3" data-testid="logo">
-                    <div className="w-10 h-10 bg-lime rounded-xl flex items-center justify-center">
-                        <Music className="w-6 h-6 text-black" />
-                    </div>
-                    <span className="font-heading text-xl font-bold text-white">TunePulse</span>
-                </div>
+                <Logo size="default" />
             </div>
 
             {/* Main Navigation */}
