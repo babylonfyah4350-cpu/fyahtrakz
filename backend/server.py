@@ -277,6 +277,69 @@ async def get_me(current_user: dict = Depends(get_current_user)):
     
     return user_data
 
+@api_router.put("/auth/profile")
+async def update_profile(
+    name: Optional[str] = Form(None),
+    bio: Optional[str] = Form(None),
+    genre: Optional[str] = Form(None),
+    country_code: Optional[str] = Form(None),
+    phone_number: Optional[str] = Form(None),
+    website: Optional[str] = Form(None),
+    instagram: Optional[str] = Form(None),
+    twitter: Optional[str] = Form(None),
+    avatar_file: Optional[UploadFile] = File(None),
+    current_user: dict = Depends(get_current_user)
+):
+    """Update user profile"""
+    update_data = {}
+    
+    if name is not None and name.strip():
+        update_data["name"] = name.strip()
+    if bio is not None:
+        update_data["bio"] = bio.strip() if bio.strip() else None
+    
+    # Artist-specific fields
+    if current_user["user_type"] == "artist":
+        if genre is not None:
+            update_data["genre"] = genre if genre else None
+        if country_code is not None:
+            update_data["country_code"] = country_code if country_code else None
+        if phone_number is not None:
+            update_data["phone_number"] = phone_number if phone_number else None
+        if website is not None:
+            update_data["website"] = website.strip() if website.strip() else None
+        if instagram is not None:
+            update_data["instagram"] = instagram.strip() if instagram.strip() else None
+        if twitter is not None:
+            update_data["twitter"] = twitter.strip() if twitter.strip() else None
+    
+    # Handle avatar upload
+    if avatar_file:
+        avatar_content = await avatar_file.read()
+        avatar_base64 = base64.b64encode(avatar_content).decode('utf-8')
+        update_data["avatar"] = f"data:image/jpeg;base64,{avatar_base64}"
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {"$set": update_data}
+    )
+    
+    # Also update artist_name in songs if name changed
+    if "name" in update_data and current_user["user_type"] == "artist":
+        await db.songs.update_many(
+            {"artist_id": current_user["id"]},
+            {"$set": {"artist_name": update_data["name"]}}
+        )
+    
+    # Fetch and return updated user
+    updated_user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0, "password": 0})
+    return {"message": "Profile updated successfully", "user": updated_user}
+
 @api_router.post("/auth/change-password")
 async def change_password(data: PasswordChange, current_user: dict = Depends(get_current_user)):
     """Change user password"""
