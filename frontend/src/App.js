@@ -210,6 +210,16 @@ const AppRoutes = () => {
                     </ProtectedRoute>
                 }
             />
+            <Route
+                path="/artist/edit-profile"
+                element={
+                    <ProtectedRoute requireArtist>
+                        <AppLayout>
+                            <EditProfile />
+                        </AppLayout>
+                    </ProtectedRoute>
+                }
+            />
 
             {/* Payment Routes */}
             <Route
