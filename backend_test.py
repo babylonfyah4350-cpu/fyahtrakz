@@ -247,6 +247,87 @@ class TunePulseAPITester:
         """Test browse featured content"""
         return self.run_test("Browse Featured", "GET", "browse/featured", 200)[0]
 
+    def test_subscription_status(self):
+        """Test subscription status for listener"""
+        if not self.listener_token:
+            return False
+        return self.run_test("Get Subscription Status", "GET", "payments/subscription/status", 200, token=self.listener_token)[0]
+
+    def test_upload_credits(self):
+        """Test upload credits for artist"""
+        if not self.artist_token:
+            return False
+        return self.run_test("Get Upload Credits", "GET", "payments/upload-credits", 200, token=self.artist_token)[0]
+
+    def test_subscription_checkout(self):
+        """Test subscription checkout creation"""
+        if not self.listener_token:
+            return False
+        
+        checkout_data = {
+            "origin_url": "https://tunepulse-22.preview.emergentagent.com",
+            "payment_type": "subscription"
+        }
+        success, response = self.run_test("Create Subscription Checkout", "POST", "payments/subscription/checkout", 200, checkout_data, token=self.listener_token)
+        return success and 'checkout_url' in response and 'session_id' in response
+
+    def test_upload_checkout(self):
+        """Test upload credit checkout creation"""
+        if not self.artist_token:
+            return False
+        
+        checkout_data = {
+            "origin_url": "https://tunepulse-22.preview.emergentagent.com"
+        }
+        success, response = self.run_test("Create Upload Checkout", "POST", "payments/upload/checkout", 200, checkout_data, token=self.artist_token)
+        return success and 'checkout_url' in response and 'session_id' in response
+
+    def test_stripe_webhook_endpoint(self):
+        """Test that Stripe webhook endpoint exists"""
+        # We can't test the actual webhook functionality without Stripe events,
+        # but we can test that the endpoint exists and returns proper error for invalid requests
+        success, response = self.run_test("Stripe Webhook Endpoint", "POST", "webhook/stripe", 400, {})
+        return success  # 400 is expected for invalid webhook data
+
+    def test_recommendations_without_subscription(self):
+        """Test recommendations endpoint requires subscription for listeners"""
+        if not self.listener_token:
+            return False
+        # This should return 402 (Payment Required) for listeners without subscription
+        success, response = self.run_test("Recommendations Without Subscription", "GET", "recommendations", 402, token=self.listener_token)
+        return success
+
+    def test_song_upload_without_credits(self):
+        """Test song upload without credits should fail"""
+        if not self.artist_token:
+            return False
+        
+        # First, let's check current credits
+        success, credits_response = self.run_test("Check Credits Before Upload", "GET", "payments/upload-credits", 200, token=self.artist_token)
+        if not success:
+            return False
+        
+        current_credits = credits_response.get('credits', 0)
+        
+        # If artist has credits, this test isn't applicable
+        if current_credits > 0:
+            print(f"Artist has {current_credits} credits, skipping no-credits test")
+            return True
+        
+        # Try to upload without credits - should fail with 402
+        audio_content = b"fake audio content for testing"
+        form_data = {
+            'title': 'Test Song No Credits',
+            'genre': 'Pop',
+            'duration': '180'
+        }
+        files = {
+            'audio_file': ('test_song.mp3', audio_content, 'audio/mpeg')
+        }
+        
+        success, response = self.run_test("Upload Song Without Credits", "POST", "songs", 402, form_data, files, self.artist_token)
+        return success
+
 def main():
     print("🎵 Starting TunePulse API Tests...")
     tester = TunePulseAPITester()
