@@ -303,6 +303,8 @@ async def upload_song(
     genre: str = Form(...),
     duration: int = Form(...),
     album_id: Optional[str] = Form(None),
+    release_date: Optional[str] = Form(None),
+    collaborators: Optional[str] = Form(None),
     audio_file: UploadFile = File(...),
     cover_file: Optional[UploadFile] = File(None),
     current_user: dict = Depends(get_current_user)
@@ -348,6 +350,11 @@ async def upload_song(
             album_name = album["title"]
             await db.albums.update_one({"id": album_id}, {"$inc": {"song_count": 1}})
     
+    # Parse collaborators as a list (comma-separated)
+    collaborator_list = []
+    if collaborators:
+        collaborator_list = [c.strip() for c in collaborators.split(',') if c.strip()]
+    
     song_doc = {
         "id": str(uuid.uuid4()),
         "title": title,
@@ -360,6 +367,9 @@ async def upload_song(
         "album_id": album_id,
         "album_name": album_name,
         "play_count": 0,
+        "release_date": release_date,
+        "collaborators": collaborator_list,
+        "uploaded_at": datetime.now(timezone.utc).isoformat(),
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.songs.insert_one(song_doc)
