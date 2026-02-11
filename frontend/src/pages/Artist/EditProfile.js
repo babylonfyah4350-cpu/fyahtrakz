@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { User, Camera, Music, Globe, Instagram, Twitter, Phone, ChevronDown, Save, ArrowLeft } from 'lucide-react';
+import { User, Camera, Music, Globe, Instagram, Twitter, Phone, ChevronDown, Save, ArrowLeft, Facebook } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Input } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
