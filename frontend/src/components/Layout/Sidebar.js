@@ -160,6 +160,14 @@ const Sidebar = () => {
                         Sign In
                     </NavLink>
                 )}
+                {/* Privacy Policy Link */}
+                <a
+                    href="/privacy.html"
+                    className="block text-center text-xs text-zinc-500 hover:text-zinc-300 mt-3"
+                    data-testid="privacy-link"
+                >
+                    Privacy Policy
+                </a>
             </div>
         </aside>
     );
