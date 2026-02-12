@@ -88,6 +88,9 @@ const AppRoutes = () => {
 
     return (
         <Routes>
+            {/* Public Pages (no auth required) */}
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+
             {/* Auth Routes */}
             <Route
                 path="/login"
