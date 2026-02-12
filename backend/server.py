@@ -1338,14 +1338,21 @@ async def get_upload_credits(current_user: dict = Depends(get_current_user)):
 @api_router.post("/admin/setup")
 async def setup_admin():
     """Create initial admin account if none exists"""
+    import secrets
+    import string
+    
     existing_admin = await db.users.find_one({"user_type": "admin"})
     if existing_admin:
         raise HTTPException(status_code=400, detail="Admin already exists")
     
+    # Generate a secure random password (16 characters)
+    alphabet = string.ascii_letters + string.digits + "!@#$%&*"
+    secure_password = ''.join(secrets.choice(alphabet) for _ in range(16))
+    
     admin_doc = {
         "id": str(uuid.uuid4()),
         "email": "admin@fyahtrakz.com",
-        "password": hash_password("admin123"),
+        "password": hash_password(secure_password),
         "name": "Admin",
         "user_type": "admin",
         "avatar": None,
@@ -1354,7 +1361,12 @@ async def setup_admin():
     }
     await db.users.insert_one(admin_doc)
     
-    return {"message": "Admin account created", "email": "admin@fyahtrakz.com", "password": "admin123"}
+    return {
+        "message": "Admin account created successfully",
+        "email": "admin@fyahtrakz.com",
+        "password": secure_password,
+        "warning": "⚠️ SAVE THIS PASSWORD NOW! It will only be shown once. Change it immediately after first login."
+    }
 
 # --- User Management ---
 
