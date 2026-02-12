@@ -173,6 +173,12 @@ const Register = () => {
                         </Link>
                     </p>
                 </div>
+                
+                <div className="mt-6 text-center">
+                    <a href="/privacy.html" className="text-xs text-zinc-500 hover:text-zinc-300">
+                        Privacy Policy
+                    </a>
+                </div>
             </div>
         </div>
     );
