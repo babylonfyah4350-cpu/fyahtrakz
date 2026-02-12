@@ -309,9 +309,6 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* Public Pages */}
-            <Route path="/privacy" element={<PrivacyPolicy />} />
-
             {/* Catch all */}
             <Route path="*" element={<Navigate to="/" />} />
         </Routes>
