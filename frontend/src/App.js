@@ -25,6 +25,7 @@ import EditProfile from './pages/Artist/EditProfile';
 import Subscribe from './pages/Subscribe';
 import PaymentSuccess from './pages/Payment/PaymentSuccess';
 import PaymentCancel from './pages/Payment/PaymentCancel';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 // Admin Pages
 import AdminDashboard from './pages/Admin/Dashboard';
